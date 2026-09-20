@@ -6,6 +6,7 @@ extern crate alloc;
 mod board;
 mod drivers;
 mod peripherals;
+mod product;
 mod ui;
 mod apps;
 
@@ -58,6 +59,7 @@ use crate::apps::settings::SettingsApp;
 use crate::apps::mp3player::Mp3Player;
 use crate::apps::smarthome::SmartHomeApp;
 use crate::peripherals::audio::{Es8311, fill_beep_buffer};
+use crate::product::settings::WatchSettings;
 
 // Network runner task (must be spawned for WiFi to work)
 #[embassy_executor::task]
@@ -498,7 +500,9 @@ async fn main(_spawner: Spawner) {
     println!("=== All systems GO! (Embassy async, WiFi OFF) ===");
 
     // === State ===
+    let settings = WatchSettings::default();
     let mut watchface = WatchFace::new();
+    watchface.brightness = settings.brightness();
     watchface.wifi_connected = false; // radio stays off until user taps the button
     let mut current_page = Page::Clock;
     // Live power-diagnostic snapshot, updated in the main loop and read
