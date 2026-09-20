@@ -13,6 +13,26 @@ Establish a reproducible, recoverable baseline on the Waveshare ESP32-S3 Touch A
 - Release build: succeeds with `cargo build --release`.
 - The existing build reports warnings; none currently prevent the target binary from linking. Treat warnings as debt to reduce while touching their owning modules, rather than as an unrelated cleanup exercise.
 
+## Verified device baseline (2026-09-20)
+
+The release binary was flashed to the attached watch over `/dev/cu.usbmodem1101` and restarted through the serial monitor.
+
+| Check | Result |
+| --- | --- |
+| Bootloader and application boot | Pass |
+| Display and TE/VSync initialization | Pass |
+| PSRAM framebuffer initialization | Pass |
+| FT3168 touch controller initialization | Pass |
+| PCF85063A RTC initialization | Pass |
+| QMI8658 IMU initialization | Pass |
+| AXP2101 power-management initialization | Pass |
+| SD card detection | Pass — 15,256 MB detected |
+| ES8311 codec and I2S initialization | Pass |
+| Wi-Fi/radio initialization | Pass — intentionally disabled until credentials are configured |
+| BLE connector initialization | Pass — advertising intentionally disabled |
+
+The serial boot log ends with `All systems GO!`. Screen appearance, touch interaction, sleep/wake behavior, and NTP remain physical-interaction checks to complete.
+
 ## Device validation checklist
 
 Run these checks on a physical watch and record pass/fail plus serial output in the issue or pull request that adds the check.
