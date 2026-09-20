@@ -5,7 +5,7 @@
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle, RoundedRectangle};
-use embedded_graphics::mono_font::ascii::FONT_10X20;
+use embedded_graphics::mono_font::ascii::{FONT_10X20, FONT_9X18_BOLD};
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::text::{Alignment, Text};
 
@@ -19,24 +19,33 @@ const KB_Y: i32 = 175;
 const COMMIT_MS: u32 = 800;
 
 struct KeyDef {
-    label: &'static str,
     chars_lower: &'static [&'static str],
     chars_upper: &'static [&'static str],
 }
 
 static KEYS: [KeyDef; 12] = [
-    KeyDef { label: "1 . , ?", chars_lower: &[".", ",", "?", "!", "1"], chars_upper: &[".", ",", "?", "!", "1"] },
-    KeyDef { label: "2 ABC", chars_lower: &["a","b","c","a","a","c","2"], chars_upper: &["A","B","C","2"] },
-    KeyDef { label: "3 DEF", chars_lower: &["d","e","f","e","e","e","3"], chars_upper: &["D","E","F","3"] },
-    KeyDef { label: "4 GHI", chars_lower: &["g","h","i","i","i","4"], chars_upper: &["G","H","I","4"] },
-    KeyDef { label: "5 JKL", chars_lower: &["j","k","l","5"], chars_upper: &["J","K","L","5"] },
-    KeyDef { label: "6 MNO", chars_lower: &["m","n","o","o","6"], chars_upper: &["M","N","O","6"] },
-    KeyDef { label: "7 PQRS", chars_lower: &["p","q","r","s","7"], chars_upper: &["P","Q","R","S","7"] },
-    KeyDef { label: "8 TUV", chars_lower: &["t","u","v","u","u","8"], chars_upper: &["T","U","V","8"] },
-    KeyDef { label: "9 WXYZ", chars_lower: &["w","x","y","z","9"], chars_upper: &["W","X","Y","Z","9"] },
-    KeyDef { label: "SHIFT", chars_lower: &[], chars_upper: &[] },
-    KeyDef { label: "0 SPACE", chars_lower: &[" ", "0"], chars_upper: &[" ", "0"] },
-    KeyDef { label: "DELETE", chars_lower: &[], chars_upper: &[] },
+    KeyDef { chars_lower: &[".", ",", "?", "!", "1"], chars_upper: &[".", ",", "?", "!", "1"] },
+    KeyDef { chars_lower: &["a","b","c","a","a","c","2"], chars_upper: &["A","B","C","2"] },
+    KeyDef { chars_lower: &["d","e","f","e","e","e","3"], chars_upper: &["D","E","F","3"] },
+    KeyDef { chars_lower: &["g","h","i","i","i","4"], chars_upper: &["G","H","I","4"] },
+    KeyDef { chars_lower: &["j","k","l","5"], chars_upper: &["J","K","L","5"] },
+    KeyDef { chars_lower: &["m","n","o","o","6"], chars_upper: &["M","N","O","6"] },
+    KeyDef { chars_lower: &["p","q","r","s","7"], chars_upper: &["P","Q","R","S","7"] },
+    KeyDef { chars_lower: &["t","u","v","u","u","8"], chars_upper: &["T","U","V","8"] },
+    KeyDef { chars_lower: &["w","x","y","z","9"], chars_upper: &["W","X","Y","Z","9"] },
+    KeyDef { chars_lower: &[], chars_upper: &[] },
+    KeyDef { chars_lower: &[" ", "0"], chars_upper: &[" ", "0"] },
+    KeyDef { chars_lower: &[], chars_upper: &[] },
+];
+
+const LOWER_LABELS: [&str; 12] = [
+    "1 . , ?", "2 abc", "3 def", "4 ghi", "5 jkl", "6 mno", "7 pqrs", "8 tuv", "9 wxyz", "abc", "0 space", "delete",
+];
+const UPPER_LABELS: [&str; 12] = [
+    "1 . , ?", "2 ABC", "3 DEF", "4 GHI", "5 JKL", "6 MNO", "7 PQRS", "8 TUV", "9 WXYZ", "ABC", "0 SPACE", "DELETE",
+];
+const NUMERIC_LABELS: [&str; 12] = [
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "123", "0", "DELETE",
 ];
 
 #[derive(Clone, Copy, PartialEq)]
@@ -96,6 +105,14 @@ impl T9Keyboard {
 
     fn delete_last(&mut self) {
         if self.text_len > 0 { self.text_len -= 1; }
+    }
+
+    fn key_label(&self, index: usize) -> &'static str {
+        match self.mode {
+            Mode::Lower => LOWER_LABELS[index],
+            Mode::Upper => UPPER_LABELS[index],
+            Mode::Numeric => NUMERIC_LABELS[index],
+        }
     }
 
     /// Call every frame with dt_ms. Returns true if display needs update.
@@ -179,29 +196,30 @@ impl T9Keyboard {
 
         // Text area background
         let _ = RoundedRectangle::with_equal_corners(
-            Rectangle::new(Point::new(16, 105), Size::new(378, 52)),
+            Rectangle::new(Point::new(16, 96), Size::new(378, 68)),
             Size::new(10, 10),
         )
             .into_styled(PrimitiveStyle::with_fill(Rgb565::new(2, 5, 4)))
             .draw(d);
         // Text
         let txt = self.get_text();
-        let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-        let _ = Text::new(txt, Point::new(26, 138), style).draw(d);
+        // Bold glyphs make the entered value clearer on the high-density AMOLED panel.
+        let style = MonoTextStyle::new(&FONT_9X18_BOLD, Rgb565::WHITE);
+        let _ = Text::new(txt, Point::new(26, 140), style).draw(d);
         // Cursor blink
-        let cursor_x = 20 + txt.len() as i32 * 10;
-        let _ = Rectangle::new(Point::new(cursor_x, 118), Size::new(2, 24))
+        let cursor_x = 26 + txt.len() as i32 * 9;
+        let _ = Rectangle::new(Point::new(cursor_x, 114), Size::new(3, 30))
             .into_styled(PrimitiveStyle::with_fill(Rgb565::WHITE))
             .draw(d);
 
         // Mode indicator
         let mode_str = match self.mode {
-            Mode::Lower => "abc",
-            Mode::Upper => "ABC",
-            Mode::Numeric => "123",
+            Mode::Lower => "LOWERCASE",
+            Mode::Upper => "CAPITALS",
+            Mode::Numeric => "NUMBERS",
         };
-        let dim = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
-        let _ = Text::with_alignment(mode_str, Point::new(365, 138), dim, Alignment::Center).draw(d);
+        let dim = MonoTextStyle::new(&FONT_10X20, Rgb565::CYAN);
+        let _ = Text::with_alignment(mode_str, Point::new(205, 88), dim, Alignment::Center).draw(d);
 
         // Keyboard buttons
         let normal = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
@@ -211,7 +229,9 @@ impl T9Keyboard {
                 let x = KB_X + col as i32 * (KEY_W + KEY_GAP);
                 let y = KB_Y + row as i32 * (KEY_H + KEY_GAP);
 
-                let bg = if self.pending_char && idx as i8 == self.last_key {
+                let bg = if idx == 9 {
+                    Rgb565::new(0, 18, 22)
+                } else if self.pending_char && idx as i8 == self.last_key {
                     Rgb565::new(10, 18, 16) // highlight active key
                 } else {
                     Rgb565::new(6, 12, 10)
@@ -223,7 +243,7 @@ impl T9Keyboard {
                 ).into_styled(PrimitiveStyle::with_fill(bg)).draw(d);
 
                 let _ = Text::with_alignment(
-                    KEYS[idx].label,
+                    self.key_label(idx),
                     Point::new(x + KEY_W / 2, y + KEY_H / 2 + 5),
                     normal,
                     Alignment::Center,
