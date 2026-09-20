@@ -1342,7 +1342,7 @@ async fn main(_spawner: Spawner) {
                 // owns connection lifecycle. Apply one requested session
                 // configuration here, then let the common WiFi state machine
                 // perform association, DHCP, and NTP on the next loop.
-                if settings_app.is_connection_requested() {
+                if settings_app.take_connection_request() {
                     if settings_app.wifi_config.is_ready() {
                         let client_config = ClientConfig::default()
                             .with_ssid(alloc::string::String::from(settings_app.wifi_config.ssid_str()))

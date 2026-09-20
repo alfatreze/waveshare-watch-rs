@@ -12,10 +12,10 @@ use embedded_graphics::text::{Alignment, Text};
 const KEYS_COLS: usize = 3;
 const KEYS_ROWS: usize = 4;
 const KEY_W: i32 = 120;
-const KEY_H: i32 = 60;
-const KEY_GAP: i32 = 4;
+const KEY_H: i32 = 72;
+const KEY_GAP: i32 = 8;
 const KB_X: i32 = (410 - KEYS_COLS as i32 * KEY_W - (KEYS_COLS as i32 - 1) * KEY_GAP) / 2;
-const KB_Y: i32 = 250;
+const KB_Y: i32 = 175;
 const COMMIT_MS: u32 = 800;
 
 struct KeyDef {
@@ -25,18 +25,18 @@ struct KeyDef {
 }
 
 static KEYS: [KeyDef; 12] = [
-    KeyDef { label: "1 .,?!", chars_lower: &[".", ",", "?", "!", "1"], chars_upper: &[".", ",", "?", "!", "1"] },
-    KeyDef { label: "2 abc", chars_lower: &["a","b","c","a","a","c","2"], chars_upper: &["A","B","C","2"] },
-    KeyDef { label: "3 def", chars_lower: &["d","e","f","e","e","e","3"], chars_upper: &["D","E","F","3"] },
-    KeyDef { label: "4 ghi", chars_lower: &["g","h","i","i","i","4"], chars_upper: &["G","H","I","4"] },
-    KeyDef { label: "5 jkl", chars_lower: &["j","k","l","5"], chars_upper: &["J","K","L","5"] },
-    KeyDef { label: "6 mno", chars_lower: &["m","n","o","o","6"], chars_upper: &["M","N","O","6"] },
-    KeyDef { label: "7 pqrs", chars_lower: &["p","q","r","s","7"], chars_upper: &["P","Q","R","S","7"] },
-    KeyDef { label: "8 tuv", chars_lower: &["t","u","v","u","u","8"], chars_upper: &["T","U","V","8"] },
-    KeyDef { label: "9 wxyz", chars_lower: &["w","x","y","z","9"], chars_upper: &["W","X","Y","Z","9"] },
-    KeyDef { label: "*SHIFT", chars_lower: &[], chars_upper: &[] },
-    KeyDef { label: "0 SPC", chars_lower: &[" ", "0"], chars_upper: &[" ", "0"] },
-    KeyDef { label: "<-DEL", chars_lower: &[], chars_upper: &[] },
+    KeyDef { label: "1 . , ?", chars_lower: &[".", ",", "?", "!", "1"], chars_upper: &[".", ",", "?", "!", "1"] },
+    KeyDef { label: "2 ABC", chars_lower: &["a","b","c","a","a","c","2"], chars_upper: &["A","B","C","2"] },
+    KeyDef { label: "3 DEF", chars_lower: &["d","e","f","e","e","e","3"], chars_upper: &["D","E","F","3"] },
+    KeyDef { label: "4 GHI", chars_lower: &["g","h","i","i","i","4"], chars_upper: &["G","H","I","4"] },
+    KeyDef { label: "5 JKL", chars_lower: &["j","k","l","5"], chars_upper: &["J","K","L","5"] },
+    KeyDef { label: "6 MNO", chars_lower: &["m","n","o","o","6"], chars_upper: &["M","N","O","6"] },
+    KeyDef { label: "7 PQRS", chars_lower: &["p","q","r","s","7"], chars_upper: &["P","Q","R","S","7"] },
+    KeyDef { label: "8 TUV", chars_lower: &["t","u","v","u","u","8"], chars_upper: &["T","U","V","8"] },
+    KeyDef { label: "9 WXYZ", chars_lower: &["w","x","y","z","9"], chars_upper: &["W","X","Y","Z","9"] },
+    KeyDef { label: "SHIFT", chars_lower: &[], chars_upper: &[] },
+    KeyDef { label: "0 SPACE", chars_lower: &[" ", "0"], chars_upper: &[" ", "0"] },
+    KeyDef { label: "DELETE", chars_lower: &[], chars_upper: &[] },
 ];
 
 #[derive(Clone, Copy, PartialEq)]
@@ -71,6 +71,12 @@ impl T9Keyboard {
     }
 
     pub fn clear_text(&mut self) { self.text_len = 0; }
+
+    pub fn set_text(&mut self, value: &str) {
+        self.clear_text();
+        self.add_char(value);
+        self.commit();
+    }
 
     fn commit(&mut self) {
         self.last_key = -1;
@@ -110,9 +116,13 @@ impl T9Keyboard {
         if !self.active { return false; }
 
         // Find which key was tapped
-        let kx = (x as i32 - KB_X) / (KEY_W + KEY_GAP);
-        let ky = (y as i32 - KB_Y) / (KEY_H + KEY_GAP);
+        let local_x = x as i32 - KB_X;
+        let local_y = y as i32 - KB_Y;
+        if local_x < 0 || local_y < 0 { return false; }
+        let kx = local_x / (KEY_W + KEY_GAP);
+        let ky = local_y / (KEY_H + KEY_GAP);
         if kx < 0 || kx >= KEYS_COLS as i32 || ky < 0 || ky >= KEYS_ROWS as i32 { return false; }
+        if local_x % (KEY_W + KEY_GAP) >= KEY_W || local_y % (KEY_H + KEY_GAP) >= KEY_H { return false; }
         let idx = (ky * KEYS_COLS as i32 + kx) as usize;
         if idx >= 12 { return false; }
 
@@ -168,16 +178,19 @@ impl T9Keyboard {
         if !self.active { return; }
 
         // Text area background
-        let _ = Rectangle::new(Point::new(10, 200), Size::new(390, 40))
-            .into_styled(PrimitiveStyle::with_fill(Rgb565::new(2, 4, 2)))
+        let _ = RoundedRectangle::with_equal_corners(
+            Rectangle::new(Point::new(16, 105), Size::new(378, 52)),
+            Size::new(10, 10),
+        )
+            .into_styled(PrimitiveStyle::with_fill(Rgb565::new(2, 5, 4)))
             .draw(d);
         // Text
         let txt = self.get_text();
         let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-        let _ = Text::new(txt, Point::new(20, 225), style).draw(d);
+        let _ = Text::new(txt, Point::new(26, 138), style).draw(d);
         // Cursor blink
         let cursor_x = 20 + txt.len() as i32 * 10;
-        let _ = Rectangle::new(Point::new(cursor_x, 210), Size::new(2, 24))
+        let _ = Rectangle::new(Point::new(cursor_x, 118), Size::new(2, 24))
             .into_styled(PrimitiveStyle::with_fill(Rgb565::WHITE))
             .draw(d);
 
@@ -188,7 +201,7 @@ impl T9Keyboard {
             Mode::Numeric => "123",
         };
         let dim = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
-        let _ = Text::with_alignment(mode_str, Point::new(370, 225), dim, Alignment::Center).draw(d);
+        let _ = Text::with_alignment(mode_str, Point::new(365, 138), dim, Alignment::Center).draw(d);
 
         // Keyboard buttons
         let normal = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
@@ -199,14 +212,14 @@ impl T9Keyboard {
                 let y = KB_Y + row as i32 * (KEY_H + KEY_GAP);
 
                 let bg = if self.pending_char && idx as i8 == self.last_key {
-                    Rgb565::new(4, 10, 4) // highlight active key
+                    Rgb565::new(10, 18, 16) // highlight active key
                 } else {
-                    Rgb565::new(3, 6, 3)
+                    Rgb565::new(6, 12, 10)
                 };
 
                 let _ = RoundedRectangle::with_equal_corners(
                     Rectangle::new(Point::new(x, y), Size::new(KEY_W as u32, KEY_H as u32)),
-                    Size::new(6, 6),
+                    Size::new(12, 12),
                 ).into_styled(PrimitiveStyle::with_fill(bg)).draw(d);
 
                 let _ = Text::with_alignment(

@@ -1,96 +1,216 @@
-// Settings app - WiFi config with T9 keyboard input
+// On-watch WiFi setup: one field per screen with a large T9 keyboard.
 
+use embedded_graphics::geometry::Point as EgPoint;
+use embedded_graphics::mono_font::ascii::FONT_10X20;
+use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle, RoundedRectangle};
-use embedded_graphics::mono_font::ascii::FONT_10X20;
-use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::text::{Alignment, Text};
-use embedded_graphics::geometry::Point as EgPoint;
 
 use crate::peripherals::wifi::{WifiConfig, WifiState};
 use crate::ui::t9_keyboard::T9Keyboard;
 
+const ACTION_X: i32 = 278;
+const ACTION_Y: i32 = 46;
+const ACTION_W: u32 = 116;
+const ACTION_H: u32 = 42;
+
 #[derive(Clone, Copy, PartialEq)]
-enum SettingsField {
+enum SetupStep {
     Ssid,
     Password,
-    Connect,
+    Review,
 }
 
 pub struct SettingsApp {
     pub wifi_config: WifiConfig,
     pub wifi_state: WifiState,
     pub keyboard: T9Keyboard,
-    active_field: SettingsField,
-    editing: bool,
+    step: SetupStep,
+    connection_request_pending: bool,
 }
 
 impl SettingsApp {
     pub fn new() -> Self {
+        let mut keyboard = T9Keyboard::new();
+        keyboard.show();
         Self {
             wifi_config: WifiConfig::new(),
             wifi_state: WifiState::Disconnected,
-            keyboard: T9Keyboard::new(),
-            active_field: SettingsField::Ssid,
-            editing: false,
+            keyboard,
+            step: SetupStep::Ssid,
+            connection_request_pending: false,
         }
+    }
+
+    fn action_hit(x: u16, y: u16) -> bool {
+        (x as i32) >= ACTION_X
+            && (x as i32) < ACTION_X + ACTION_W as i32
+            && (y as i32) >= ACTION_Y
+            && (y as i32) < ACTION_Y + ACTION_H as i32
+    }
+
+    fn save_active_field(&mut self) {
+        match self.step {
+            SetupStep::Ssid => self.wifi_config.set_ssid(self.keyboard.get_text()),
+            SetupStep::Password => self.wifi_config.set_password(self.keyboard.get_text()),
+            SetupStep::Review => {}
+        }
+    }
+
+    fn edit_ssid(&mut self) {
+        self.step = SetupStep::Ssid;
+        self.keyboard.set_text(self.wifi_config.ssid_str());
+        self.keyboard.show();
+        self.wifi_state = WifiState::Disconnected;
+    }
+
+    fn edit_password(&mut self) {
+        self.step = SetupStep::Password;
+        self.keyboard.set_text(self.wifi_config.password_str());
+        self.keyboard.show();
+        self.wifi_state = WifiState::Disconnected;
     }
 
     /// Handle tap at screen position. Returns true if consumed.
     pub fn handle_tap(&mut self, x: u16, y: u16) -> bool {
-        // Check if keyboard is active and handles it
-        if self.keyboard.is_active() {
-            if self.keyboard.handle_tap(x, y) {
-                // Sync text to active field
-                match self.active_field {
-                    SettingsField::Ssid => self.wifi_config.set_ssid(self.keyboard.get_text()),
-                    SettingsField::Password => self.wifi_config.set_password(self.keyboard.get_text()),
-                    _ => {}
-                }
-                return true;
-            }
-            // Tap outside keyboard = close it
-            if y < 200 {
-                self.keyboard.hide();
-                self.editing = false;
-                return true;
-            }
+        if self.wifi_state == WifiState::Connecting || self.wifi_state == WifiState::Connected {
+            return true;
         }
 
-        // Field selection (match the render positions: SSID=60-110, Pass=120-170, Connect=185-225)
-        if y >= 60 && y < 115 {
-            // SSID field tapped
-            self.active_field = SettingsField::Ssid;
-            self.keyboard.clear_text();
-            self.keyboard.show();
-            self.editing = true;
-            return true;
-        }
-        if y >= 120 && y < 175 {
-            // Password field
-            self.active_field = SettingsField::Password;
-            self.keyboard.clear_text();
-            self.keyboard.show();
-            self.editing = true;
-            return true;
-        }
-        if y >= 185 && y < 230 {
-            // Connect button
-            if self.wifi_state == WifiState::Disconnected || self.wifi_state == WifiState::Error {
-                self.wifi_state = WifiState::Connecting;
+        match self.step {
+            SetupStep::Ssid => {
+                if Self::action_hit(x, y) {
+                    self.save_active_field();
+                    if self.wifi_config.is_ready() {
+                        self.edit_password();
+                    } else {
+                        self.wifi_state = WifiState::Error;
+                    }
+                    return true;
+                }
+                if self.keyboard.handle_tap(x, y) {
+                    self.save_active_field();
+                    self.wifi_state = WifiState::Disconnected;
+                    return true;
+                }
             }
-            return true;
+            SetupStep::Password => {
+                if Self::action_hit(x, y) {
+                    self.save_active_field();
+                    self.step = SetupStep::Review;
+                    self.keyboard.hide();
+                    self.wifi_state = WifiState::Disconnected;
+                    return true;
+                }
+                if self.keyboard.handle_tap(x, y) {
+                    self.save_active_field();
+                    self.wifi_state = WifiState::Disconnected;
+                    return true;
+                }
+            }
+            SetupStep::Review => {
+                if Self::action_hit(x, y) {
+                    if self.wifi_config.is_ready() {
+                        self.wifi_state = WifiState::Connecting;
+                        self.connection_request_pending = true;
+                    } else {
+                        self.edit_ssid();
+                        self.wifi_state = WifiState::Error;
+                    }
+                    return true;
+                }
+                // A large dedicated edit target avoids returning to a dense form.
+                if (280..=355).contains(&(y as i32)) {
+                    self.edit_password();
+                    return true;
+                }
+                if (190..=265).contains(&(y as i32)) {
+                    self.edit_ssid();
+                    return true;
+                }
+            }
         }
         false
     }
 
     pub fn update(&mut self, dt_ms: u32) {
-        self.keyboard.update(dt_ms);
+        if self.keyboard.update(dt_ms) {
+            self.save_active_field();
+        }
     }
 
-    pub fn is_connection_requested(&self) -> bool {
-        self.wifi_state == WifiState::Connecting
+    /// Consume the single request generated by the review screen's CONNECT action.
+    pub fn take_connection_request(&mut self) -> bool {
+        let requested = self.connection_request_pending;
+        self.connection_request_pending = false;
+        requested
+    }
+
+    fn action_label(&self) -> (&'static str, Rgb565) {
+        match self.step {
+            SetupStep::Ssid => ("NEXT", Rgb565::new(0, 20, 20)),
+            SetupStep::Password => ("REVIEW", Rgb565::new(0, 20, 20)),
+            SetupStep::Review => match self.wifi_state {
+                WifiState::Error => ("RETRY", Rgb565::RED),
+                _ => ("CONNECT", Rgb565::new(0, 20, 20)),
+            },
+        }
+    }
+
+    fn draw_action<D: DrawTarget<Color = Rgb565>>(&self, d: &mut D) {
+        let (label, colour) = self.action_label();
+        let _ = RoundedRectangle::with_equal_corners(
+            Rectangle::new(EgPoint::new(ACTION_X, ACTION_Y), Size::new(ACTION_W, ACTION_H)),
+            Size::new(12, 12),
+        )
+        .into_styled(PrimitiveStyle::with_fill(colour))
+        .draw(d);
+        let _ = Text::with_alignment(
+            label,
+            EgPoint::new(ACTION_X + ACTION_W as i32 / 2, ACTION_Y + 28),
+            MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE),
+            Alignment::Center,
+        )
+        .draw(d);
+    }
+
+    fn draw_review<D: DrawTarget<Color = Rgb565>>(&self, d: &mut D) {
+        let label = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
+        let value = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
+        let card = Rgb565::new(4, 9, 8);
+
+        let _ = RoundedRectangle::with_equal_corners(
+            Rectangle::new(EgPoint::new(16, 112), Size::new(378, 66)),
+            Size::new(12, 12),
+        )
+        .into_styled(PrimitiveStyle::with_fill(card))
+        .draw(d);
+        let _ = Text::new("NETWORK", EgPoint::new(28, 136), label).draw(d);
+        let ssid = self.wifi_config.ssid_str();
+        let _ = Text::new(if ssid.is_empty() { "NOT SET" } else { ssid }, EgPoint::new(28, 160), value).draw(d);
+
+        let _ = RoundedRectangle::with_equal_corners(
+            Rectangle::new(EgPoint::new(16, 190), Size::new(378, 66)),
+            Size::new(12, 12),
+        )
+        .into_styled(PrimitiveStyle::with_fill(card))
+        .draw(d);
+        let _ = Text::new("PASSWORD", EgPoint::new(28, 214), label).draw(d);
+        let pass = if self.wifi_config.pass_len == 0 { "OPEN NETWORK" } else { "********" };
+        let _ = Text::new(pass, EgPoint::new(28, 238), value).draw(d);
+
+        for (y, text) in [(280, "EDIT PASSWORD"), (370, "SESSION ONLY - NOT SAVED")] {
+            let _ = RoundedRectangle::with_equal_corners(
+                Rectangle::new(EgPoint::new(16, y), Size::new(378, 62)),
+                Size::new(12, 12),
+            )
+            .into_styled(PrimitiveStyle::with_fill(Rgb565::new(6, 12, 10)))
+            .draw(d);
+            let _ = Text::with_alignment(text, EgPoint::new(205, y + 38), value, Alignment::Center).draw(d);
+        }
+        let _ = Text::with_alignment("Tap a card to edit", EgPoint::new(205, 462), label, Alignment::Center).draw(d);
     }
 
     pub fn render<D: DrawTarget<Color = Rgb565>>(&self, d: &mut D) {
@@ -99,55 +219,30 @@ impl SettingsApp {
             .draw(d);
 
         let title = MonoTextStyle::new(&FONT_10X20, Rgb565::CYAN);
-        let label = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
-        let value = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-
-        let _ = Text::with_alignment("SETTINGS", EgPoint::new(205, 35), title, Alignment::Center).draw(d);
-
-        // SSID field
-        let ssid_bg = if self.active_field == SettingsField::Ssid && self.editing { Rgb565::new(3, 6, 3) } else { Rgb565::new(2, 4, 2) };
-        let _ = RoundedRectangle::with_equal_corners(
-            Rectangle::new(EgPoint::new(15, 60), Size::new(380, 50)),
-            Size::new(8, 8),
-        ).into_styled(PrimitiveStyle::with_fill(ssid_bg)).draw(d);
-        let _ = Text::new("WiFi SSID:", EgPoint::new(25, 78), label).draw(d);
-        let ssid = self.wifi_config.ssid_str();
-        let ssid_display = if ssid.is_empty() { "(tap to enter)" } else { ssid };
-        let _ = Text::new(ssid_display, EgPoint::new(25, 98), value).draw(d);
-
-        // Password field
-        let pass_bg = if self.active_field == SettingsField::Password && self.editing { Rgb565::new(3, 6, 3) } else { Rgb565::new(2, 4, 2) };
-        let _ = RoundedRectangle::with_equal_corners(
-            Rectangle::new(EgPoint::new(15, 120), Size::new(380, 50)),
-            Size::new(8, 8),
-        ).into_styled(PrimitiveStyle::with_fill(pass_bg)).draw(d);
-        let _ = Text::new("Password:", EgPoint::new(25, 138), label).draw(d);
-        let pass_len = self.wifi_config.pass_len;
-        let _ = Text::new(if pass_len > 0 { "********" } else { "(tap to enter)" }, EgPoint::new(25, 158), value).draw(d);
-
-        // Connect button
-        let btn_color = match self.wifi_state {
-            WifiState::Disconnected => Rgb565::BLUE,
-            WifiState::Connecting => Rgb565::YELLOW,
-            WifiState::Connected => Rgb565::GREEN,
-            WifiState::Error => Rgb565::RED,
+        let prompt = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
+        let _ = Text::new("WI-FI SETUP", EgPoint::new(16, 34), title).draw(d);
+        let heading = match self.step {
+            SetupStep::Ssid => "1/3  ENTER NETWORK NAME",
+            SetupStep::Password => "2/3  ENTER PASSWORD",
+            SetupStep::Review => "3/3  REVIEW AND CONNECT",
         };
-        let _ = RoundedRectangle::with_equal_corners(
-            Rectangle::new(EgPoint::new(100, 185), Size::new(210, 40)),
-            Size::new(10, 10),
-        ).into_styled(PrimitiveStyle::with_fill(btn_color)).draw(d);
-        let btn_text = match self.wifi_state {
-            WifiState::Disconnected => "CONNECT",
-            WifiState::Connecting => "CONNECTING...",
-            WifiState::Connected => "CONNECTED",
-            WifiState::Error => "RETRY",
-        };
-        let _ = Text::with_alignment(btn_text, EgPoint::new(205, 210), MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE), Alignment::Center).draw(d);
+        let _ = Text::new(heading, EgPoint::new(16, 72), prompt).draw(d);
+        self.draw_action(d);
 
-        let session_note = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
-        let _ = Text::with_alignment("WiFi is saved for this session only", EgPoint::new(205, 245), session_note, Alignment::Center).draw(d);
+        match self.step {
+            SetupStep::Ssid | SetupStep::Password => self.keyboard.render(d),
+            SetupStep::Review => self.draw_review(d),
+        }
 
-        // Draw keyboard overlay if active
-        self.keyboard.render(d);
+        if self.wifi_state == WifiState::Error {
+            let error = MonoTextStyle::new(&FONT_10X20, Rgb565::RED);
+            let message = if self.step == SetupStep::Ssid { "ENTER A NETWORK NAME" } else { "CONNECTION FAILED - EDIT OR RETRY" };
+            let _ = Text::with_alignment(message, EgPoint::new(205, 96), error, Alignment::Center).draw(d);
+        }
+        if self.wifi_state == WifiState::Connecting || self.wifi_state == WifiState::Connected {
+            let status = if self.wifi_state == WifiState::Connecting { "CONNECTING..." } else { "CONNECTED" };
+            let colour = if self.wifi_state == WifiState::Connecting { Rgb565::YELLOW } else { Rgb565::GREEN };
+            let _ = Text::with_alignment(status, EgPoint::new(205, 482), MonoTextStyle::new(&FONT_10X20, colour), Alignment::Center).draw(d);
+        }
     }
 }
