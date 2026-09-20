@@ -5,7 +5,7 @@
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle, RoundedRectangle};
-use embedded_graphics::mono_font::ascii::{FONT_10X20, FONT_9X18_BOLD};
+use embedded_graphics::mono_font::ascii::FONT_10X20;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::text::{Alignment, Text};
 
@@ -203,12 +203,19 @@ impl T9Keyboard {
             .draw(d);
         // Text
         let txt = self.get_text();
-        // Bold glyphs make the entered value clearer on the high-density AMOLED panel.
-        let style = MonoTextStyle::new(&FONT_9X18_BOLD, Rgb565::WHITE);
-        let _ = Text::new(txt, Point::new(26, 140), style).draw(d);
+        // The bundled font set stops at 10x20. Draw each glyph twice with a
+        // 2px horizontal offset to create a clear 12px-wide input treatment.
+        let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
+        for (index, ch) in txt.chars().enumerate() {
+            let mut glyph = [0u8; 4];
+            let ch_text = ch.encode_utf8(&mut glyph);
+            let x = 26 + index as i32 * 12;
+            let _ = Text::new(ch_text, Point::new(x, 142), style).draw(d);
+            let _ = Text::new(ch_text, Point::new(x + 2, 142), style).draw(d);
+        }
         // Cursor blink
-        let cursor_x = 26 + txt.len() as i32 * 9;
-        let _ = Rectangle::new(Point::new(cursor_x, 114), Size::new(3, 30))
+        let cursor_x = 26 + txt.chars().count() as i32 * 12;
+        let _ = Rectangle::new(Point::new(cursor_x, 112), Size::new(3, 32))
             .into_styled(PrimitiveStyle::with_fill(Rgb565::WHITE))
             .draw(d);
 
