@@ -945,6 +945,7 @@ async fn main(_spawner: Spawner) {
                     Ok(Ok(())) => {
                         println!("[WIFI] Connected (PS=MaxModem)");
                         wifi_connected = true;
+                        settings_app.wifi_state = crate::peripherals::wifi::WifiState::Connected;
                         watchface.wifi_connected = true;
                         watchface.force_redraw();
                         page_dirty = true;
@@ -953,6 +954,7 @@ async fn main(_spawner: Spawner) {
                         // Timeout or error — back off instead of hammering.
                         println!("[WIFI] Connect failed/timeout");
                         wifi_on_request = false;
+                        settings_app.wifi_state = crate::peripherals::wifi::WifiState::Error;
                         watchface.wifi_connected = false;
                         watchface.force_redraw();
                         page_dirty = true;
@@ -1335,6 +1337,36 @@ async fn main(_spawner: Spawner) {
                 if let Ok((Some(tp), _)) = touch.poll() {
                     last_touch_x = tp.x;
                     last_touch_y = tp.y;
+                }
+                // The settings UI owns credential entry; the radio controller
+                // owns connection lifecycle. Apply one requested session
+                // configuration here, then let the common WiFi state machine
+                // perform association, DHCP, and NTP on the next loop.
+                if settings_app.is_connection_requested() {
+                    if settings_app.wifi_config.is_ready() {
+                        let client_config = ClientConfig::default()
+                            .with_ssid(alloc::string::String::from(settings_app.wifi_config.ssid_str()))
+                            .with_password(alloc::string::String::from(settings_app.wifi_config.password_str()))
+                            .with_auth_method(if settings_app.wifi_config.password_str().is_empty() {
+                                AuthMethod::None
+                            } else {
+                                AuthMethod::WpaWpa2Personal
+                            });
+                        match wifi_controller.set_config(&ModeConfig::Client(client_config)) {
+                            Ok(()) => {
+                                wifi_on_request = true;
+                                ntp_synced = false;
+                                println!("[WIFI] Session credentials applied");
+                            }
+                            Err(_) => {
+                                settings_app.wifi_state = crate::peripherals::wifi::WifiState::Error;
+                                println!("[WIFI] Could not apply session credentials");
+                            }
+                        }
+                    } else {
+                        settings_app.wifi_state = crate::peripherals::wifi::WifiState::Error;
+                        println!("[WIFI] SSID required");
+                    }
                 }
                 settings_app.render(&mut fb);
                 if now >= next_watchface_flush {

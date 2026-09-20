@@ -89,6 +89,10 @@ impl SettingsApp {
         self.keyboard.update(dt_ms);
     }
 
+    pub fn is_connection_requested(&self) -> bool {
+        self.wifi_state == WifiState::Connecting
+    }
+
     pub fn render<D: DrawTarget<Color = Rgb565>>(&self, d: &mut D) {
         let _ = Rectangle::new(EgPoint::zero(), Size::new(410, 502))
             .into_styled(PrimitiveStyle::with_fill(Rgb565::new(1, 2, 2)))
@@ -139,6 +143,9 @@ impl SettingsApp {
             WifiState::Error => "RETRY",
         };
         let _ = Text::with_alignment(btn_text, EgPoint::new(205, 210), MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE), Alignment::Center).draw(d);
+
+        let session_note = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
+        let _ = Text::with_alignment("WiFi is saved for this session only", EgPoint::new(205, 245), session_note, Alignment::Center).draw(d);
 
         // Draw keyboard overlay if active
         self.keyboard.render(d);

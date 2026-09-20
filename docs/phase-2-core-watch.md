@@ -13,7 +13,7 @@ Turn the verified firmware foundation into a dependable daily watch while keepin
    - Add persistent alarms, a countdown timer, and a stopwatch.
    - Make alerts wake the display safely and use the existing audio path.
 3. **First-run setup**
-   - Replace build-time Wi-Fi configuration with an on-device provisioning flow.
+   - On-device Wi-Fi setup now supports a session-only connection; persist it only after the flash-storage safety spike.
    - Add time-zone selection and status/error feedback.
 4. **Watchface platform**
    - A stable registry and selection screen.
