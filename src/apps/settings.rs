@@ -122,11 +122,11 @@ impl SettingsApp {
                     return true;
                 }
                 // A large dedicated edit target avoids returning to a dense form.
-                if (280..=355).contains(&(y as i32)) {
+                if (16..=394).contains(&(x as i32)) && (280..=355).contains(&(y as i32)) {
                     self.edit_password();
                     return true;
                 }
-                if (190..=265).contains(&(y as i32)) {
+                if (16..=394).contains(&(x as i32)) && (190..=265).contains(&(y as i32)) {
                     self.edit_ssid();
                     return true;
                 }
@@ -201,15 +201,14 @@ impl SettingsApp {
         let pass = if self.wifi_config.pass_len == 0 { "OPEN NETWORK" } else { "********" };
         let _ = Text::new(pass, EgPoint::new(28, 238), value).draw(d);
 
-        for (y, text) in [(280, "EDIT PASSWORD"), (370, "SESSION ONLY - NOT SAVED")] {
-            let _ = RoundedRectangle::with_equal_corners(
-                Rectangle::new(EgPoint::new(16, y), Size::new(378, 62)),
-                Size::new(12, 12),
-            )
-            .into_styled(PrimitiveStyle::with_fill(Rgb565::new(6, 12, 10)))
-            .draw(d);
-            let _ = Text::with_alignment(text, EgPoint::new(205, y + 38), value, Alignment::Center).draw(d);
-        }
+        let _ = RoundedRectangle::with_equal_corners(
+            Rectangle::new(EgPoint::new(16, 280), Size::new(378, 62)),
+            Size::new(12, 12),
+        )
+        .into_styled(PrimitiveStyle::with_fill(Rgb565::new(6, 12, 10)))
+        .draw(d);
+        let _ = Text::with_alignment("EDIT PASSWORD", EgPoint::new(205, 318), value, Alignment::Center).draw(d);
+        let _ = Text::with_alignment("SESSION ONLY - NOT SAVED", EgPoint::new(205, 395), label, Alignment::Center).draw(d);
         let _ = Text::with_alignment("Tap a card to edit", EgPoint::new(205, 462), label, Alignment::Center).draw(d);
     }
 
