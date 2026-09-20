@@ -30,10 +30,11 @@ The release binary was flashed to the attached watch over `/dev/cu.usbmodem1101`
 | ES8311 codec and I2S initialization | Pass |
 | Wi-Fi/radio initialization | Pass — intentionally disabled until credentials are configured |
 | BLE connector initialization | Pass — advertising intentionally disabled |
+| Sleep/wake state machine | Pass — dim at 8 s, AOD at 15 s, display off at 3 min, and touch wake restored full brightness |
 
 Wi-Fi and NTP were subsequently validated with locally supplied build-time credentials. The watch associated using maximum modem power-save mode, acquired a DHCP lease, received NTP time, and updated the RTC. Credentials were supplied only as build environment variables and are not present in tracked files.
 
-The serial boot log ends with `All systems GO!`. Screen appearance and touch/tap interaction were confirmed on the physical device. Sleep/wake behavior and NTP remain to be checked.
+The serial boot log ends with `All systems GO!`. Screen appearance, touch/tap interaction, and the full dim → AOD → off → wake cycle were confirmed on the physical device.
 
 ## Device validation checklist
 
@@ -65,4 +66,6 @@ Run these checks on a physical watch and record pass/fail plus serial output in 
 
 ## Exit criteria
 
-Phase 1 is complete when the release build is repeatable, the flash/recovery procedure is documented from an actual device run, and the display, touch, RTC, power states, and one Wi-Fi/NTP path have passed their hardware checks.
+## Completion
+
+Phase 1 is complete. The release build is reproducible, the watch has been flashed and restarted from the serial monitor, and the display, touch, RTC, peripherals, Wi-Fi/NTP, and full power-state cycle have passed on the physical device.

@@ -868,6 +868,7 @@ async fn main(_spawner: Spawner) {
                 // Restore the user's chosen brightness from the slider.
                 display.set_brightness(watchface.brightness);
                 screen_state = 3;
+                println!("[DISPLAY] Wake → bright");
                 next_watchface_flush = now;
                 if app_state == AppState::Watchface {
                     watchface.force_redraw();
@@ -881,12 +882,14 @@ async fn main(_spawner: Spawner) {
             display.set_brightness(0x00);
             display.display_off();
             screen_state = 0;
+            println!("[DISPLAY] Idle → off");
         // 15 s idle → AOD (was 40 s — faster dim saves ~45 mA×25 s every cycle)
         } else if idle_secs >= 15 && screen_state > 1 {
             if app_state == AppState::Watchface && current_page == Page::Clock {
                 display.set_brightness(0x18); // very dim, ~10% of normal
                 screen_state = 1;
                 aod_last_minute = 99; // force first AOD frame
+                println!("[DISPLAY] Idle → AOD");
             } else {
                 // Not on the clock face → no AOD, just go straight to off
                 display.set_brightness(0x00);
@@ -897,6 +900,7 @@ async fn main(_spawner: Spawner) {
         } else if idle_secs >= 8 && screen_state > 2 {
             display.set_brightness(0x40);
             screen_state = 2;
+            println!("[DISPLAY] Idle → dim");
         }
 
         // === WiFi on/off state machine ===
