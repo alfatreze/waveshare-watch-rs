@@ -31,6 +31,8 @@ The release binary was flashed to the attached watch over `/dev/cu.usbmodem1101`
 | Wi-Fi/radio initialization | Pass — intentionally disabled until credentials are configured |
 | BLE connector initialization | Pass — advertising intentionally disabled |
 
+Wi-Fi and NTP were subsequently validated with locally supplied build-time credentials. The watch associated using maximum modem power-save mode, acquired a DHCP lease, received NTP time, and updated the RTC. Credentials were supplied only as build environment variables and are not present in tracked files.
+
 The serial boot log ends with `All systems GO!`. Screen appearance and touch/tap interaction were confirmed on the physical device. Sleep/wake behavior and NTP remain to be checked.
 
 ## Device validation checklist

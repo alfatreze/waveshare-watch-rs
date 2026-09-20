@@ -99,9 +99,16 @@ async fn ntp_sync(
             let ntp_secs = u32::from_be_bytes([response[40], response[41], response[42], response[43]]);
             // Convert NTP epoch (1900) to Unix epoch (1970): subtract 70 years in seconds
             let unix_secs = ntp_secs.wrapping_sub(2_208_988_800);
-            // Convert to hours/minutes/seconds (UTC+2 for France)
-            let utc_offset = 2 * 3600; // CEST (summer time)
-            let local_secs = unix_secs + utc_offset;
+            // Keep UTC as the safe default. A local offset can be supplied at
+            // build time until the settings/time-zone service exists.
+            let utc_offset = option_env!("UTC_OFFSET_SECONDS")
+                .and_then(|value| value.parse::<i32>().ok())
+                .unwrap_or(0);
+            let local_secs = if utc_offset >= 0 {
+                unix_secs.saturating_add(utc_offset as u32)
+            } else {
+                unix_secs.saturating_sub(utc_offset.unsigned_abs())
+            };
             let time_of_day = local_secs % 86400;
             let hours = (time_of_day / 3600) as u8;
             let minutes = ((time_of_day % 3600) / 60) as u8;
@@ -586,6 +593,7 @@ async fn main(_spawner: Spawner) {
     let mut wifi_started: bool = false;         // controller.start() called
     let mut wifi_connected: bool = false;       // connect_async succeeded
     let mut ntp_synced: bool = false;
+    let mut last_ntp_attempt = Instant::now();
     let mut last_wifi_idle_check = Instant::now();
     // Request pending from a UI tap on the WiFi button.
     let mut wifi_toggle_request: bool = false;
@@ -932,19 +940,6 @@ async fn main(_spawner: Spawner) {
                         watchface.wifi_connected = true;
                         watchface.force_redraw();
                         page_dirty = true;
-                        // NTP sync only once per boot, after DHCP lands.
-                        if !ntp_synced {
-                            for _ in 0..30 {
-                                if stack.config_v4().is_some() { break; }
-                                Timer::after(Duration::from_millis(100)).await;
-                            }
-                            if stack.config_v4().is_some() {
-                                if ntp_sync(stack, &mut rtc).await.is_ok() {
-                                    ntp_synced = true;
-                                    println!("[NTP] synced");
-                                }
-                            }
-                        }
                     }
                     _ => {
                         // Timeout or error — back off instead of hammering.
@@ -957,6 +952,25 @@ async fn main(_spawner: Spawner) {
                 }
             }
             last_wifi_idle_check = now;
+        }
+        // DHCP often completes after the Wi-Fi association callback. Retry NTP
+        // at a bounded cadence until it succeeds instead of making one silent
+        // attempt during the connection transition.
+        if wifi_on_request && wifi_connected && !ntp_synced
+            && (now - last_ntp_attempt).as_secs() >= 5
+        {
+            last_ntp_attempt = now;
+            if stack.config_v4().is_none() {
+                println!("[NTP] waiting for DHCP lease");
+            } else {
+                match ntp_sync(stack, &mut rtc).await {
+                    Ok(()) => {
+                        ntp_synced = true;
+                        println!("[NTP] synced");
+                    }
+                    Err(()) => println!("[NTP] request failed; retrying"),
+                }
+            }
         }
         if !wifi_on_request && wifi_connected {
             let _ = wifi_controller.disconnect_async().await;
