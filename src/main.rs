@@ -1329,14 +1329,12 @@ async fn main(_spawner: Spawner) {
 
             AppState::Settings => {
                 settings_app.update(dt_ms.max(1));
-                // For T9: detect touch down via GPIO38 for rapid multi-tap
+                // Touch coordinates were already refreshed by the common touch
+                // pass above. Handle the matching tap event directly instead of
+                // doing a second I2C poll after it, which could make a T9 action
+                // feel one interaction late.
                 if tap_event {
                     settings_app.handle_tap(last_touch_x, last_touch_y);
-                }
-                // Also read live touch position for keyboard area
-                if let Ok((Some(tp), _)) = touch.poll() {
-                    last_touch_x = tp.x;
-                    last_touch_y = tp.y;
                 }
                 // The settings UI owns credential entry; the radio controller
                 // owns connection lifecycle. Apply one requested session

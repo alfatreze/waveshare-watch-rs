@@ -1,6 +1,6 @@
 // T9 Keyboard - French multi-tap input
 // Ported from C++ T9Keyboard.cpp
-// 12 buttons in 4x3 grid, tap to cycle characters, 800ms auto-commit
+// 12 buttons in 4x3 grid, tap to cycle characters, 1.5s auto-commit
 
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
@@ -16,7 +16,9 @@ const KEY_H: i32 = 72;
 const KEY_GAP: i32 = 8;
 const KB_X: i32 = (410 - KEYS_COLS as i32 * KEY_W - (KEYS_COLS as i32 - 1) * KEY_GAP) / 2;
 const KB_Y: i32 = 175;
-const COMMIT_MS: u32 = 800;
+// A T9 sequence is measured from its first tap. 800ms was short enough for a
+// normal three-letter cycle to commit before the third tap landed.
+const COMMIT_MS: u32 = 1_500;
 
 struct KeyDef {
     chars_lower: &'static [&'static str],
