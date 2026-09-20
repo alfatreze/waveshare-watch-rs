@@ -31,7 +31,7 @@ The release binary was flashed to the attached watch over `/dev/cu.usbmodem1101`
 | Wi-Fi/radio initialization | Pass — intentionally disabled until credentials are configured |
 | BLE connector initialization | Pass — advertising intentionally disabled |
 
-The serial boot log ends with `All systems GO!`. Screen appearance, touch interaction, sleep/wake behavior, and NTP remain physical-interaction checks to complete.
+The serial boot log ends with `All systems GO!`. Screen appearance and touch/tap interaction were confirmed on the physical device. Sleep/wake behavior and NTP remain to be checked.
 
 ## Device validation checklist
 
