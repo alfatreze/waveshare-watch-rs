@@ -601,6 +601,7 @@ async fn main(_spawner: Spawner) {
     use embassy_futures::select::select3;
 
     let mut next_rtc = Instant::now();
+    let mut last_alarm_trigger: Option<(u8, u8, u8)> = None;
     let mut next_battery = Instant::now();
     let mut last_frame = Instant::now();
     let mut next_watchface_flush = Instant::now();
@@ -722,10 +723,32 @@ async fn main(_spawner: Spawner) {
 
         // RTC: 1 Hz update is enough for a clock display. Skip when screen is off OR in AOD
         // (AOD updates the RTC manually once per minute).
-        if screen_state >= 2 && now >= next_rtc {
+        if now >= next_rtc {
             if let Ok(dt) = rtc.get_time() {
-                watchface.update_time(dt.hours, dt.minutes, dt.seconds);
-                watchface.update_date(dt.day, dt.month, dt.year);
+                if screen_state >= 2 {
+                    watchface.update_time(dt.hours, dt.minutes, dt.seconds);
+                    watchface.update_date(dt.day, dt.month, dt.year);
+                }
+                let alarm_key = (dt.day, dt.hours, dt.minutes);
+                if settings.alarm_enabled()
+                    && dt.hours == settings.alarm_hour()
+                    && dt.minutes == settings.alarm_minute()
+                    && last_alarm_trigger != Some(alarm_key)
+                {
+                    last_alarm_trigger = Some(alarm_key);
+                    if screen_state == 0 { display.display_on(); }
+                    display.set_brightness(watchface.brightness);
+                    screen_state = 3;
+                    let _ = audio_codec.unmute();
+                    delay.delay_millis(2);
+                    pa_en.set_high();
+                    if let Ok(transfer) = i2s_tx.write_dma(unsafe { &BEEP_BUF }) { let _ = transfer.wait(); }
+                    pa_en.set_low();
+                    let _ = audio_codec.mute();
+                    println!("[ALARM] Triggered");
+                    watchface.force_redraw();
+                    page_dirty = true;
+                }
             }
             next_rtc = now + Duration::from_secs(1);
         }

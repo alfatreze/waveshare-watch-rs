@@ -29,6 +29,7 @@ enum SettingsView {
     Home,
     Wifi,
     TimeZone,
+    Alarm,
 }
 
 pub struct SettingsApp {
@@ -106,6 +107,7 @@ impl SettingsApp {
         match self.view {
             SettingsView::Home => return self.handle_home_tap(x, y),
             SettingsView::TimeZone => return self.handle_timezone_tap(x, y),
+            SettingsView::Alarm => return self.handle_alarm_tap(x, y),
             SettingsView::Wifi => {}
         }
         if self.wifi_state == WifiState::Connecting || self.wifi_state == WifiState::Connected {
@@ -188,6 +190,7 @@ impl SettingsApp {
                 self.view = SettingsView::TimeZone;
                 true
             }
+            326..=391 => { self.view = SettingsView::Alarm; true }
             _ => false,
         }
     }
@@ -212,6 +215,23 @@ impl SettingsApp {
             return true;
         }
         false
+    }
+
+    fn handle_alarm_tap(&mut self, x: u16, y: u16) -> bool {
+        if !(16..=394).contains(&(x as i32)) { return false; }
+        let mut enabled = self.watch_settings.alarm_enabled();
+        let mut hour = self.watch_settings.alarm_hour();
+        let mut minute = self.watch_settings.alarm_minute();
+        match y as i32 {
+            145..=210 => enabled = !enabled,
+            225..=290 => hour = (hour + 1) % 24,
+            305..=370 => minute = (minute + 5) % 60,
+            390..=465 => { self.view = SettingsView::Home; return true; }
+            _ => return false,
+        }
+        self.watch_settings.set_alarm(enabled, hour, minute);
+        self.settings_changed = true;
+        true
     }
 
     pub fn update(&mut self, dt_ms: u32) {
@@ -322,7 +342,8 @@ impl SettingsApp {
         Self::draw_card(d, 170, "CLOCK FORMAT", if self.watch_settings.use_24_hour_clock() { "24 H" } else { "12 H" }, Rgb565::GREEN);
         let mut timezone = [0; 8];
         Self::draw_card(d, 248, "TIME ZONE", self.timezone_label(&mut timezone), Rgb565::YELLOW);
-        Self::draw_card(d, 326, "WATCH FACE", "DIGITAL", Rgb565::new(20, 40, 20));
+        let mut alarm = [0; 6];
+        Self::draw_card(d, 326, "ALARM", if self.watch_settings.alarm_enabled() { self.alarm_label(&mut alarm) } else { "OFF" }, Rgb565::new(20, 40, 20));
         let _ = Text::with_alignment("Tap a setting to change it", EgPoint::new(205, 452), hint, Alignment::Center).draw(d);
     }
 
@@ -341,6 +362,25 @@ impl SettingsApp {
         let _ = Text::with_alignment("Applied on the next time sync", EgPoint::new(205, 466), hint, Alignment::Center).draw(d);
     }
 
+    fn alarm_label<'a>(&self, buf: &'a mut [u8; 6]) -> &'a str {
+        let h = self.watch_settings.alarm_hour();
+        let m = self.watch_settings.alarm_minute();
+        buf[..5].copy_from_slice(&[b'0' + h / 10, b'0' + h % 10, b':', b'0' + m / 10, b'0' + m % 10]);
+        core::str::from_utf8(&buf[..5]).unwrap_or("07:00")
+    }
+
+    fn draw_alarm<D: DrawTarget<Color = Rgb565>>(&self, d: &mut D) {
+        let title = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CYAN);
+        let value = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE);
+        let mut time = [0; 6];
+        let _ = Text::new("DAILY ALARM", EgPoint::new(16, 42), title).draw(d);
+        let _ = Text::with_alignment(self.alarm_label(&mut time), EgPoint::new(205, 112), value, Alignment::Center).draw(d);
+        Self::draw_card(d, 145, "ALARM", if self.watch_settings.alarm_enabled() { "ON" } else { "OFF" }, Rgb565::GREEN);
+        Self::draw_card(d, 225, "HOUR", "+1", Rgb565::YELLOW);
+        Self::draw_card(d, 305, "MINUTE", "+5", Rgb565::YELLOW);
+        Self::draw_card(d, 390, "DONE", "", Rgb565::WHITE);
+    }
+
     pub fn render<D: DrawTarget<Color = Rgb565>>(&self, d: &mut D) {
         let _ = Rectangle::new(EgPoint::zero(), Size::new(410, 502))
             .into_styled(PrimitiveStyle::with_fill(Rgb565::new(1, 2, 2)))
@@ -352,6 +392,10 @@ impl SettingsApp {
         }
         if self.view == SettingsView::TimeZone {
             self.draw_timezone(d);
+            return;
+        }
+        if self.view == SettingsView::Alarm {
+            self.draw_alarm(d);
             return;
         }
 

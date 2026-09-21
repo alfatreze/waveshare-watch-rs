@@ -10,8 +10,9 @@ pub const SETTINGS_SLOT_B: u32 = 0xa000;
 pub const SETTINGS_SLOT_SIZE: u32 = 4096;
 
 const RECORD_MAGIC: [u8; 4] = *b"WWRS";
-const RECORD_VERSION: u8 = 1;
-const RECORD_LEN: usize = 20;
+const RECORD_VERSION: u8 = 2;
+const RECORD_LEN: usize = 24;
+const V1_RECORD_LEN: usize = 20;
 
 /// The selected watchface. New designs become new variants; the numeric value
 /// is stable so it can be stored without coupling persistence to Rust names.
@@ -37,6 +38,9 @@ pub struct WatchSettings {
     active_watchface: WatchfaceId,
     use_24_hour_clock: bool,
     utc_offset_seconds: i32,
+    alarm_enabled: bool,
+    alarm_hour: u8,
+    alarm_minute: u8,
 }
 
 impl Default for WatchSettings {
@@ -49,6 +53,9 @@ impl Default for WatchSettings {
             // is implemented. A build-time offset remains available for the
             // current firmware-validation path.
             utc_offset_seconds: 0,
+            alarm_enabled: false,
+            alarm_hour: 7,
+            alarm_minute: 0,
         }
     }
 }
@@ -89,6 +96,15 @@ impl WatchSettings {
     /// surprising clock output.
     pub fn set_utc_offset_seconds(&mut self, value: i32) {
         self.utc_offset_seconds = value.clamp(-12 * 60 * 60, 14 * 60 * 60);
+    }
+
+    pub fn alarm_enabled(self) -> bool { self.alarm_enabled }
+    pub fn alarm_hour(self) -> u8 { self.alarm_hour }
+    pub fn alarm_minute(self) -> u8 { self.alarm_minute }
+    pub fn set_alarm(&mut self, enabled: bool, hour: u8, minute: u8) {
+        self.alarm_enabled = enabled;
+        self.alarm_hour = hour.min(23);
+        self.alarm_minute = minute.min(59);
     }
 }
 
@@ -190,17 +206,26 @@ fn encode_record(generation: u32, settings: WatchSettings) -> [u8; RECORD_LEN] {
     record[7] = u8::from(settings.use_24_hour_clock());
     record[8..12].copy_from_slice(&settings.utc_offset_seconds().to_le_bytes());
     record[12..16].copy_from_slice(&generation.to_le_bytes());
-    let record_checksum = checksum(&record[..16]).to_le_bytes();
-    record[16..20].copy_from_slice(&record_checksum);
+    record[16] = u8::from(settings.alarm_enabled());
+    record[17] = settings.alarm_hour();
+    record[18] = settings.alarm_minute();
+    let record_checksum = checksum(&record[..20]).to_le_bytes();
+    record[20..24].copy_from_slice(&record_checksum);
     record
 }
 
 fn decode_record(record: &[u8; RECORD_LEN]) -> Option<(u32, WatchSettings)> {
-    if record[..4] != RECORD_MAGIC || record[4] != RECORD_VERSION || record[7] > 1 {
+    if record[..4] != RECORD_MAGIC || record[7] > 1 {
         return None;
     }
-    let expected_checksum = u32::from_le_bytes(record[16..20].try_into().ok()?);
-    if checksum(&record[..16]) != expected_checksum {
+    let version = record[4];
+    let (checksum_end, checksum_start) = match version {
+        1 => (16, V1_RECORD_LEN - 4),
+        RECORD_VERSION if record[16] <= 1 && record[17] <= 23 && record[18] <= 59 => (20, RECORD_LEN - 4),
+        _ => return None,
+    };
+    let expected_checksum = u32::from_le_bytes(record[checksum_end..checksum_end + 4].try_into().ok()?);
+    if checksum(&record[..checksum_start]) != expected_checksum {
         return None;
     }
     let mut settings = WatchSettings::default();
@@ -208,6 +233,9 @@ fn decode_record(record: &[u8; RECORD_LEN]) -> Option<(u32, WatchSettings)> {
     settings.set_active_watchface(WatchfaceId::from_storage(record[6])?);
     settings.set_use_24_hour_clock(record[7] != 0);
     settings.set_utc_offset_seconds(i32::from_le_bytes(record[8..12].try_into().ok()?));
+    if version == RECORD_VERSION {
+        settings.set_alarm(record[16] != 0, record[17], record[18]);
+    }
     let generation = u32::from_le_bytes(record[12..16].try_into().ok()?);
     Some((generation, settings))
 }
