@@ -71,6 +71,7 @@ async fn net_task(mut runner: embassy_net::Runner<'static, esp_radio::wifi::Wifi
 async fn ntp_sync(
     stack: embassy_net::Stack<'static>,
     rtc: &mut crate::peripherals::rtc::Pcf85063aRtc<impl embedded_hal::i2c::I2c>,
+    utc_offset_seconds: i32,
 ) -> Result<(), ()> {
     use embassy_net::udp::{UdpSocket, PacketMetadata};
 
@@ -101,15 +102,10 @@ async fn ntp_sync(
             let ntp_secs = u32::from_be_bytes([response[40], response[41], response[42], response[43]]);
             // Convert NTP epoch (1900) to Unix epoch (1970): subtract 70 years in seconds
             let unix_secs = ntp_secs.wrapping_sub(2_208_988_800);
-            // Keep UTC as the safe default. A local offset can be supplied at
-            // build time until the settings/time-zone service exists.
-            let utc_offset = option_env!("UTC_OFFSET_SECONDS")
-                .and_then(|value| value.parse::<i32>().ok())
-                .unwrap_or(0);
-            let local_secs = if utc_offset >= 0 {
-                unix_secs.saturating_add(utc_offset as u32)
+            let local_secs = if utc_offset_seconds >= 0 {
+                unix_secs.saturating_add(utc_offset_seconds as u32)
             } else {
-                unix_secs.saturating_sub(utc_offset.unsigned_abs())
+                unix_secs.saturating_sub(utc_offset_seconds.unsigned_abs())
             };
             let time_of_day = local_secs % 86400;
             let hours = (time_of_day / 3600) as u8;
@@ -516,6 +512,7 @@ async fn main(_spawner: Spawner) {
     // === State ===
     let mut watchface = WatchFace::new();
     watchface.brightness = settings.brightness();
+    watchface.set_24_hour_clock(settings.use_24_hour_clock());
     watchface.wifi_connected = false; // radio stays off until user taps the button
     let mut current_page = Page::Clock;
     // Live power-diagnostic snapshot, updated in the main loop and read
@@ -530,6 +527,7 @@ async fn main(_spawner: Spawner) {
     let mut maze_game = MazeGame::new();
     let mut launcher = Launcher::new();
     let mut settings_app = SettingsApp::new();
+    settings_app.set_watch_settings(settings);
     let mut mp3_player = Mp3Player::new();
     let mut smarthome_app = SmartHomeApp::new();
     if !mp3_files.is_empty() {
@@ -1004,7 +1002,7 @@ async fn main(_spawner: Spawner) {
             if stack.config_v4().is_none() {
                 println!("[NTP] waiting for DHCP lease");
             } else {
-                match ntp_sync(stack, &mut rtc).await {
+                match ntp_sync(stack, &mut rtc, settings.utc_offset_seconds()).await {
                     Ok(()) => {
                         ntp_synced = true;
                         println!("[NTP] synced");
@@ -1382,6 +1380,14 @@ async fn main(_spawner: Spawner) {
                     }
                     settings_touch_down = false;
                     settings_touch_handled = false;
+                }
+                if let Some(updated_settings) = settings_app.take_watch_settings_change() {
+                    settings = updated_settings;
+                    watchface.set_24_hour_clock(settings.use_24_hour_clock());
+                    watchface.force_redraw();
+                    page_dirty = true;
+                    settings_dirty = true;
+                    save_settings_at = now + Duration::from_millis(1200);
                 }
                 // The settings UI owns credential entry; the radio controller
                 // owns connection lifecycle. Apply one requested session

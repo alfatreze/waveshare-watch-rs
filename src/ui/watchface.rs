@@ -109,6 +109,7 @@ pub struct WatchFace {
     /// CPU frequency in MHz. Cycles through 80/160/240 on tap.
     /// Only takes effect on next reboot (esp-hal doesn't expose runtime DVFS).
     pub cpu_mhz: u16,
+    use_24_hour_clock: bool,
 }
 
 impl WatchFace {
@@ -125,6 +126,7 @@ impl WatchFace {
             gyro_enabled: false, // off by default to save battery
             brightness: 0xA0,   // default ~63%
             cpu_mhz: 160,
+            use_24_hour_clock: true,
         }
     }
 
@@ -132,6 +134,22 @@ impl WatchFace {
         if self.hours != h || self.minutes != m || self.seconds != s {
             self.hours = h; self.minutes = m; self.seconds = s;
             self.time_changed = true;
+        }
+    }
+
+    pub fn set_24_hour_clock(&mut self, value: bool) {
+        if self.use_24_hour_clock != value {
+            self.use_24_hour_clock = value;
+            self.force_redraw();
+        }
+    }
+
+    fn display_hours(&self) -> u8 {
+        if self.use_24_hour_clock {
+            self.hours
+        } else {
+            let hour = self.hours % 12;
+            if hour == 0 { 12 } else { hour }
         }
     }
 
@@ -513,7 +531,7 @@ impl WatchFace {
 
         // Draw HH:MM using the segment renderer. Pass 99 for seconds to indicate "skip seconds".
         // The segments::draw_time function draws all 8 chars; we'll use a custom call.
-        segments::draw_hhmm(d, cx, cy, self.hours, self.minutes, dim_white, Rgb565::BLACK)?;
+        segments::draw_hhmm(d, cx, cy, self.display_hours(), self.minutes, dim_white, Rgb565::BLACK)?;
 
         // Tiny battery indicator at the bottom (3 chars max: "99%")
         let mut buf = [0u8; 4];
@@ -573,7 +591,7 @@ impl WatchFace {
             Text::with_alignment("RUST WATCH", Point::new(cx, 38), cyan, Alignment::Center).draw(d)?;
 
             // Time (y=60, 64px tall, ends at y=124)
-            segments::draw_time(d, cx, TIME_Y, self.hours, self.minutes, self.seconds,
+            segments::draw_time(d, cx, TIME_Y, self.display_hours(), self.minutes, self.seconds,
                 Rgb565::WHITE, Rgb565::BLACK)?;
 
             // Date FR under time
@@ -617,7 +635,7 @@ impl WatchFace {
             )
             .into_styled(PrimitiveStyle::with_fill(Rgb565::BLACK))
             .draw(d)?;
-            segments::draw_time(d, cx, TIME_Y, self.hours, self.minutes, self.seconds,
+            segments::draw_time(d, cx, TIME_Y, self.display_hours(), self.minutes, self.seconds,
                 Rgb565::WHITE, Rgb565::BLACK)?;
             self.time_changed = false;
             outcome.time_region = Some(Self::time_region());
