@@ -34,6 +34,7 @@ const MENU_ITEMS: &[MenuItem] = &[
     MenuItem { name: "Smart Home", state: AppState::SmartHome, bg_color: Rgb565::new(8, 4, 15), text_color: Rgb565::new(20, 10, 31) },
     MenuItem { name: "Settings", state: AppState::Settings, bg_color: Rgb565::new(6, 12, 6), text_color: Rgb565::WHITE },
     MenuItem { name: "Timer", state: AppState::Timer, bg_color: Rgb565::new(10, 4, 2), text_color: Rgb565::YELLOW },
+    MenuItem { name: "Stopwatch", state: AppState::Stopwatch, bg_color: Rgb565::new(2, 8, 12), text_color: Rgb565::CYAN },
 ];
 
 pub struct Launcher {

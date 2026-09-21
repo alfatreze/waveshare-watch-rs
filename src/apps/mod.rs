@@ -14,6 +14,7 @@ pub mod settings;
 pub mod mp3player;
 pub mod smarthome;
 pub mod timer;
+pub mod stopwatch;
 
 /// Input state passed to apps each frame
 pub struct AppInput {
@@ -52,4 +53,5 @@ pub enum AppState {
     SmartHome,
     Settings,
     Timer,
+    Stopwatch,
 }

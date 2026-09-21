@@ -59,6 +59,7 @@ use crate::apps::settings::SettingsApp;
 use crate::apps::mp3player::Mp3Player;
 use crate::apps::smarthome::SmartHomeApp;
 use crate::apps::timer::CountdownTimer;
+use crate::apps::stopwatch::Stopwatch;
 use crate::peripherals::audio::{Es8311, fill_beep_buffer};
 use crate::product::settings::{FlashSettingsStore, SettingsStore, WatchSettings};
 
@@ -532,6 +533,7 @@ async fn main(_spawner: Spawner) {
     let mut mp3_player = Mp3Player::new();
     let mut smarthome_app = SmartHomeApp::new();
     let mut countdown_timer = CountdownTimer::new();
+    let mut stopwatch = Stopwatch::new();
     if !mp3_files.is_empty() {
         mp3_player.set_track_count(mp3_files.len());
         mp3_player.set_track_name(&mp3_files[0]);
@@ -666,7 +668,7 @@ async fn main(_spawner: Spawner) {
                     // changes, slow enough not to skew the measurement.
                     Page::Power   => Duration::from_secs(1),
                 },
-                AppState::Launcher | AppState::Settings | AppState::Mp3Player | AppState::Timer
+                AppState::Launcher | AppState::Settings | AppState::Mp3Player | AppState::Timer | AppState::Stopwatch
                 | AppState::SmartHome => Duration::from_millis(100),
                 // Flappy previously ran at 8 ms (~125 Hz). The panel can't
                 // even display that (VSync is ~33 ms) so the extra ticks
@@ -1293,6 +1295,7 @@ async fn main(_spawner: Spawner) {
                         AppState::Mp3Player => mp3_player.setup(),
                         AppState::SmartHome => smarthome_app.setup(),
                         AppState::Timer => countdown_timer.setup(),
+                        AppState::Stopwatch => stopwatch.setup(),
                         AppState::Settings => {}
                         AppState::Watchface => { watchface.force_redraw(); page_dirty = true; }
                         _ => {}
@@ -1467,6 +1470,14 @@ async fn main(_spawner: Spawner) {
                     pa_en.set_low(); let _ = audio_codec.mute();
                     println!("[TIMER] Complete");
                 }
+                if now >= next_watchface_flush { fb.flush_vsync(&mut display, &te_pin); next_watchface_flush = now + Duration::from_millis(100); }
+                if boot_button.is_low() { app_state = AppState::Launcher; Timer::after(Duration::from_millis(200)).await; }
+            }
+
+            AppState::Stopwatch => {
+                let touch = if tap_event { Some(crate::peripherals::touch::TouchPoint { x: last_touch_x, y: last_touch_y, fingers: 1 }) } else { None };
+                stopwatch.update(&AppInput { touch, swipe: swipe_event, tap: tap_event, accel, dt_ms: dt_ms.max(1) });
+                stopwatch.render(&mut fb);
                 if now >= next_watchface_flush { fb.flush_vsync(&mut display, &te_pin); next_watchface_flush = now + Duration::from_millis(100); }
                 if boot_button.is_low() { app_state = AppState::Launcher; Timer::after(Duration::from_millis(200)).await; }
             }
