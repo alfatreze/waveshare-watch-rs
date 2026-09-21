@@ -28,3 +28,15 @@ pub const PIXEL_OPERATOR_MONO_16X24: MonoFont = MonoFont {
     underline: DecorationDimensions::new(22, 1),
     strikethrough: DecorationDimensions::new(12, 1),
 };
+
+/// Standard UI face: wider and clearer than the previous built-in 10x20
+/// bitmap while remaining narrow enough for watch controls and lists.
+pub const PIXEL_OPERATOR_MONO_14X24: MonoFont = MonoFont {
+    image: ImageRaw::new(include_bytes!("assets/pixel_operator_mono_14x24.raw"), 1_344),
+    glyph_mapping: &ASCII,
+    character_size: Size::new(14, 24),
+    character_spacing: 0,
+    baseline: 20,
+    underline: DecorationDimensions::new(14, 1),
+    strikethrough: DecorationDimensions::new(14, 1),
+};

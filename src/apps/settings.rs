@@ -1,7 +1,7 @@
 // On-watch WiFi setup: one field per screen with a large T9 keyboard.
 
 use embedded_graphics::geometry::Point as EgPoint;
-use embedded_graphics::mono_font::ascii::FONT_10X20;
+use crate::ui::fonts::PIXEL_OPERATOR_MONO_14X24;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
@@ -249,15 +249,15 @@ impl SettingsApp {
         let _ = Text::with_alignment(
             label,
             EgPoint::new(ACTION_X + ACTION_W as i32 / 2, ACTION_Y + 28),
-            MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE),
+            MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE),
             Alignment::Center,
         )
         .draw(d);
     }
 
     fn draw_review<D: DrawTarget<Color = Rgb565>>(&self, d: &mut D) {
-        let label = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
-        let value = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
+        let label = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CSS_GRAY);
+        let value = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE);
         let card = Rgb565::new(4, 9, 8);
 
         let _ = RoundedRectangle::with_equal_corners(
@@ -299,8 +299,8 @@ impl SettingsApp {
         ).into_styled(PrimitiveStyle::with_fill(Rgb565::new(4, 9, 8))).draw(d);
         let _ = Rectangle::new(EgPoint::new(16, y + 8), Size::new(4, 49))
             .into_styled(PrimitiveStyle::with_fill(accent)).draw(d);
-        let _ = Text::new(title, EgPoint::new(32, y + 27), MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE)).draw(d);
-        let _ = Text::with_alignment(value, EgPoint::new(375, y + 47), MonoTextStyle::new(&FONT_10X20, accent), Alignment::Right).draw(d);
+        let _ = Text::new(title, EgPoint::new(32, y + 27), MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE)).draw(d);
+        let _ = Text::with_alignment(value, EgPoint::new(375, y + 47), MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, accent), Alignment::Right).draw(d);
     }
 
     fn timezone_label<'a>(&self, buf: &'a mut [u8; 8]) -> &'a str {
@@ -315,8 +315,8 @@ impl SettingsApp {
     }
 
     fn draw_home<D: DrawTarget<Color = Rgb565>>(&self, d: &mut D) {
-        let title = MonoTextStyle::new(&FONT_10X20, Rgb565::CYAN);
-        let hint = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
+        let title = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CYAN);
+        let hint = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CSS_GRAY);
         let _ = Text::new("SETTINGS", EgPoint::new(16, 42), title).draw(d);
         Self::draw_card(d, 92, "WI-FI", "SETUP", Rgb565::CYAN);
         Self::draw_card(d, 170, "CLOCK FORMAT", if self.watch_settings.use_24_hour_clock() { "24 H" } else { "12 H" }, Rgb565::GREEN);
@@ -327,9 +327,9 @@ impl SettingsApp {
     }
 
     fn draw_timezone<D: DrawTarget<Color = Rgb565>>(&self, d: &mut D) {
-        let title = MonoTextStyle::new(&FONT_10X20, Rgb565::CYAN);
-        let value = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-        let hint = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
+        let title = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CYAN);
+        let value = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE);
+        let hint = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CSS_GRAY);
         let mut timezone = [0; 8];
         let _ = Text::new("TIME ZONE", EgPoint::new(16, 42), title).draw(d);
         let _ = Text::with_alignment(self.timezone_label(&mut timezone), EgPoint::new(205, 110), value, Alignment::Center).draw(d);
@@ -355,8 +355,8 @@ impl SettingsApp {
             return;
         }
 
-        let title = MonoTextStyle::new(&FONT_10X20, Rgb565::CYAN);
-        let prompt = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
+        let title = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CYAN);
+        let prompt = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE);
         let _ = Text::new("WI-FI SETUP", EgPoint::new(16, 34), title).draw(d);
         let heading = match self.step {
             SetupStep::Ssid => "1/3  ENTER NETWORK NAME",
@@ -372,14 +372,14 @@ impl SettingsApp {
         }
 
         if self.wifi_state == WifiState::Error {
-            let error = MonoTextStyle::new(&FONT_10X20, Rgb565::RED);
+            let error = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::RED);
             let message = if self.step == SetupStep::Ssid { "ENTER A NETWORK NAME" } else { "CONNECTION FAILED - EDIT OR RETRY" };
             let _ = Text::with_alignment(message, EgPoint::new(205, 96), error, Alignment::Center).draw(d);
         }
         if self.wifi_state == WifiState::Connecting || self.wifi_state == WifiState::Connected {
             let status = if self.wifi_state == WifiState::Connecting { "CONNECTING..." } else { "CONNECTED" };
             let colour = if self.wifi_state == WifiState::Connecting { Rgb565::YELLOW } else { Rgb565::GREEN };
-            let _ = Text::with_alignment(status, EgPoint::new(205, 482), MonoTextStyle::new(&FONT_10X20, colour), Alignment::Center).draw(d);
+            let _ = Text::with_alignment(status, EgPoint::new(205, 482), MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, colour), Alignment::Center).draw(d);
         }
     }
 }

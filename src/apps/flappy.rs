@@ -3,7 +3,7 @@
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle, RoundedRectangle};
-use embedded_graphics::mono_font::ascii::FONT_10X20;
+use crate::ui::fonts::PIXEL_OPERATOR_MONO_14X24;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::text::{Alignment, Text};
 use embedded_graphics::geometry::Point as EgPoint;
@@ -162,15 +162,15 @@ impl App for FlappyGame {
         let mut buf = [0u8; 8];
         let s = fmt_u32(&mut buf, self.score);
         let _ = Text::with_alignment(s, EgPoint::new(W / 2, 40),
-            MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE), Alignment::Center).draw(d);
+            MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE), Alignment::Center).draw(d);
 
         if self.game_over {
             let _ = Rectangle::new(EgPoint::new(60, 210), Size::new(290, 80))
                 .into_styled(PrimitiveStyle::with_fill(Rgb565::BLACK)).draw(d);
             let _ = Text::with_alignment("GAME OVER", EgPoint::new(W / 2, 240),
-                MonoTextStyle::new(&FONT_10X20, Rgb565::RED), Alignment::Center).draw(d);
+                MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::RED), Alignment::Center).draw(d);
             let _ = Text::with_alignment("TAP TO RETRY", EgPoint::new(W / 2, 270),
-                MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY), Alignment::Center).draw(d);
+                MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CSS_GRAY), Alignment::Center).draw(d);
         }
     }
 }

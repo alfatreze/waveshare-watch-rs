@@ -1,7 +1,7 @@
 // Multi-page system with swipe transitions
 // Pages: Clock | Sensors | System Info
 
-use embedded_graphics::mono_font::ascii::FONT_10X20;
+use crate::ui::fonts::PIXEL_OPERATOR_MONO_14X24;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
@@ -67,11 +67,11 @@ pub fn draw_sensors_page<D: DrawTarget<Color = Rgb565>>(
     temp: i16,
 ) -> Result<(), D::Error> {
     let cx = W as i32 / 2;
-    let cyan = MonoTextStyle::new(&FONT_10X20, Rgb565::CYAN);
-    let white = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-    let green = MonoTextStyle::new(&FONT_10X20, Rgb565::GREEN);
-    let yellow = MonoTextStyle::new(&FONT_10X20, Rgb565::YELLOW);
-    let dim = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
+    let cyan = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CYAN);
+    let white = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE);
+    let green = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::GREEN);
+    let yellow = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::YELLOW);
+    let dim = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CSS_GRAY);
 
     Text::with_alignment("SENSORS", Point::new(cx, 40), cyan, Alignment::Center).draw(display)?;
 
@@ -107,10 +107,10 @@ pub fn draw_system_page<D: DrawTarget<Color = Rgb565>>(
     batt_mv: u16, batt_pct: u8, charging: bool,
 ) -> Result<(), D::Error> {
     let cx = W as i32 / 2;
-    let cyan = MonoTextStyle::new(&FONT_10X20, Rgb565::CYAN);
-    let white = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-    let dim = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
-    let green = MonoTextStyle::new(&FONT_10X20, Rgb565::GREEN);
+    let cyan = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CYAN);
+    let white = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE);
+    let dim = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CSS_GRAY);
+    let green = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::GREEN);
 
     Text::with_alignment("SYSTEM", Point::new(cx, 40), cyan, Alignment::Center).draw(display)?;
 

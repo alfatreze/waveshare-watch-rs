@@ -5,7 +5,7 @@
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle, RoundedRectangle};
-use embedded_graphics::mono_font::ascii::FONT_10X20;
+use crate::ui::fonts::PIXEL_OPERATOR_MONO_14X24;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::text::{Alignment, Text};
 use embedded_graphics::geometry::Point as EgPoint;
@@ -191,9 +191,9 @@ impl App for SmartHomeApp {
         let _ = Rectangle::new(EgPoint::zero(), Size::new(W as u32, H as u32))
             .into_styled(PrimitiveStyle::with_fill(Rgb565::BLACK)).draw(d);
 
-        let title = MonoTextStyle::new(&FONT_10X20, Rgb565::CYAN);
-        let white = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-        let dim = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
+        let title = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CYAN);
+        let white = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE);
+        let dim = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CSS_GRAY);
 
         let _ = Text::with_alignment("SMART HOME", EgPoint::new(W / 2, 35), title, Alignment::Center).draw(d);
 
@@ -235,7 +235,7 @@ impl App for SmartHomeApp {
                     _ => Rgb565::YELLOW,
                 };
                 let _ = Text::with_alignment(resp, EgPoint::new(W - BTN_MARGIN - 10, y + 22),
-                    MonoTextStyle::new(&FONT_10X20, resp_color), Alignment::Right).draw(d);
+                    MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, resp_color), Alignment::Right).draw(d);
             }
         }
 

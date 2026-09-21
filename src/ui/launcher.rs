@@ -4,7 +4,7 @@
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle, RoundedRectangle};
-use embedded_graphics::mono_font::ascii::FONT_10X20;
+use crate::ui::fonts::PIXEL_OPERATOR_MONO_14X24;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::text::{Alignment, Text};
 
@@ -88,7 +88,7 @@ impl Launcher {
             .draw(d);
 
         // Title
-        let title = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
+        let title = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE);
         let _ = Text::with_alignment("APPS", Point::new(205, 35), title, Alignment::Center).draw(d);
 
         // Menu items
@@ -107,7 +107,7 @@ impl Launcher {
                 .into_styled(PrimitiveStyle::with_fill(item.text_color)).draw(d);
 
             // Item name with contrast-aware color
-            let text_style = MonoTextStyle::new(&FONT_10X20, item.text_color);
+            let text_style = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, item.text_color);
             let _ = Text::with_alignment(
                 item.name,
                 Point::new(SCREEN_W / 2, y + ITEM_H / 2 + 5),

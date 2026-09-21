@@ -4,7 +4,7 @@
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle, RoundedRectangle};
-use embedded_graphics::mono_font::ascii::FONT_10X20;
+use crate::ui::fonts::PIXEL_OPERATOR_MONO_14X24;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::text::{Alignment, Text};
 use embedded_graphics::geometry::Point as EgPoint;
@@ -183,7 +183,7 @@ impl App for Game2048 {
         // Score
         let mut buf = [0u8; 16];
         let s = fmt_num(&mut buf, b"SCORE:", self.score);
-        let _ = Text::with_alignment(s, EgPoint::new(205, 35), MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE), Alignment::Center).draw(d);
+        let _ = Text::with_alignment(s, EgPoint::new(205, 35), MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE), Alignment::Center).draw(d);
 
         // Board
         for r in 0..GRID {
@@ -203,7 +203,7 @@ impl App for Game2048 {
                     // Dark text on light tiles, white on dark tiles
                     let txt_color = if val <= 4 { Rgb565::BLACK } else { Rgb565::WHITE };
                     let _ = Text::with_alignment(ns, EgPoint::new(x + CELL_SIZE / 2, y + CELL_SIZE / 2 + 5),
-                        MonoTextStyle::new(&FONT_10X20, txt_color), Alignment::Center).draw(d);
+                        MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, txt_color), Alignment::Center).draw(d);
                 }
             }
         }

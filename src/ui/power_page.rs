@@ -14,7 +14,8 @@
 //! A companion serial-dump path (one line / second on the UART) is enabled
 //! by `PowerStats::serial_dump_enabled` flag for logging to a laptop.
 
-use embedded_graphics::mono_font::ascii::{FONT_8X13, FONT_10X20};
+use embedded_graphics::mono_font::ascii::FONT_8X13;
+use crate::ui::fonts::PIXEL_OPERATOR_MONO_14X24;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
@@ -38,7 +39,7 @@ pub fn draw_power_page<D: DrawTarget<Color = Rgb565>>(
         .draw(d)?;
 
     let cx = W / 2;
-    let title = MonoTextStyle::new(&FONT_10X20, Rgb565::CYAN);
+    let title = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CYAN);
     let label = MonoTextStyle::new(&FONT_8X13, Rgb565::CSS_GRAY);
     let value = MonoTextStyle::new(&FONT_8X13, Rgb565::WHITE);
     let green = MonoTextStyle::new(&FONT_8X13, Rgb565::GREEN);
@@ -134,11 +135,11 @@ pub fn draw_power_page<D: DrawTarget<Color = Rgb565>>(
     let t_s = fmt_total(&mut t_buf, stats.total_ma());
     Text::new("TOTAL:", Point::new(left_x, y), label).draw(d)?;
     let total_style = if stats.total_ma() < 50 {
-        MonoTextStyle::new(&FONT_10X20, Rgb565::GREEN)
+        MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::GREEN)
     } else if stats.total_ma() < 120 {
-        MonoTextStyle::new(&FONT_10X20, Rgb565::YELLOW)
+        MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::YELLOW)
     } else {
-        MonoTextStyle::new(&FONT_10X20, Rgb565::RED)
+        MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::RED)
     };
     Text::with_alignment(t_s, Point::new(right_x, y + 4), total_style, Alignment::Right).draw(d)?;
     y += row_h + 6;
@@ -157,11 +158,11 @@ pub fn draw_power_page<D: DrawTarget<Color = Rgb565>>(
     let rh_s = fmt_remaining(&mut rh_buf, remain_hours, stats.battery_pct);
     Text::new("LEFT:", Point::new(left_x, y), label).draw(d)?;
     let left_style = if remain_hours < 2 {
-        MonoTextStyle::new(&FONT_10X20, Rgb565::RED)
+        MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::RED)
     } else if remain_hours < 6 {
-        MonoTextStyle::new(&FONT_10X20, Rgb565::YELLOW)
+        MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::YELLOW)
     } else {
-        MonoTextStyle::new(&FONT_10X20, Rgb565::GREEN)
+        MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::GREEN)
     };
     Text::with_alignment(rh_s, Point::new(right_x, y + 4), left_style, Alignment::Right).draw(d)?;
     y += row_h + 4;
@@ -181,7 +182,7 @@ pub fn draw_power_page<D: DrawTarget<Color = Rgb565>>(
         Rectangle::new(Point::new(rbt_x, rbt_y), Size::new(rbt_w as u32, rbt_h as u32)),
         Size::new(10, 10),
     ).into_styled(PrimitiveStyle::with_fill(Rgb565::new(20, 4, 0))).draw(d)?;
-    let rbt_ts = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
+    let rbt_ts = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE);
     Text::with_alignment(
         "REBOOT",
         Point::new(cx, rbt_y + 22),

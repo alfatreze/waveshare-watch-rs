@@ -6,7 +6,7 @@
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle, RoundedRectangle};
-use embedded_graphics::mono_font::ascii::FONT_10X20;
+use crate::ui::fonts::PIXEL_OPERATOR_MONO_14X24;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::text::{Alignment, Text};
 use embedded_graphics::geometry::Point as EgPoint;
@@ -285,8 +285,8 @@ impl App for TetrisGame {
         }
 
         // Score + Lines (in side margins)
-        let white = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-        let dim = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
+        let white = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE);
+        let dim = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CSS_GRAY);
 
         let mut buf = [0u8; 8];
         let s = fmt_num(&mut buf, self.score);
@@ -301,7 +301,7 @@ impl App for TetrisGame {
             let _ = Rectangle::new(EgPoint::new(40, 200), Size::new(330, 100))
                 .into_styled(PrimitiveStyle::with_fill(Rgb565::BLACK)).draw(d);
             let _ = Text::with_alignment("GAME OVER", EgPoint::new(SCREEN_W / 2, 240),
-                MonoTextStyle::new(&FONT_10X20, Rgb565::RED), Alignment::Center).draw(d);
+                MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::RED), Alignment::Center).draw(d);
             let _ = Text::with_alignment("TAP TO RETRY", EgPoint::new(SCREEN_W / 2, 275),
                 dim, Alignment::Center).draw(d);
         }

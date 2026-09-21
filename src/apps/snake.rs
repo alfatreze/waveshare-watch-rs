@@ -5,7 +5,7 @@ use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::geometry::Point as EgPoint;
 use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle, RoundedRectangle};
-use embedded_graphics::mono_font::ascii::FONT_10X20;
+use crate::ui::fonts::PIXEL_OPERATOR_MONO_14X24;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::text::{Alignment, Text};
 
@@ -194,7 +194,7 @@ impl App for SnakeGame {
         // Score
         let mut buf = [0u8; 16];
         let s = format_score(&mut buf, self.score);
-        let style = MonoTextStyle::new(&FONT_10X20, Rgb565::CYAN);
+        let style = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CYAN);
         let _ = Text::with_alignment(s, EgPoint::new(205, 30), style, Alignment::Center).draw(d);
     }
 }

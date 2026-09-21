@@ -4,7 +4,7 @@
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
-use embedded_graphics::mono_font::ascii::FONT_10X20;
+use crate::ui::fonts::PIXEL_OPERATOR_MONO_14X24;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::text::{Alignment, Text};
 use embedded_graphics::geometry::Point as EgPoint;
@@ -144,7 +144,7 @@ impl App for MazeGame {
 
         if self.won {
             let _ = Text::with_alignment("YOU WIN!", EgPoint::new(205, 30),
-                MonoTextStyle::new(&FONT_10X20, Rgb565::GREEN), Alignment::Center).draw(d);
+                MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::GREEN), Alignment::Center).draw(d);
         }
     }
 }

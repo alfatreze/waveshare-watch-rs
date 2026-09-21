@@ -4,7 +4,7 @@
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle, RoundedRectangle, Circle};
-use embedded_graphics::mono_font::ascii::FONT_10X20;
+use crate::ui::fonts::PIXEL_OPERATOR_MONO_14X24;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::text::{Alignment, Text};
 use embedded_graphics::geometry::Point as EgPoint;
@@ -98,9 +98,9 @@ impl App for Mp3Player {
         let _ = Rectangle::new(EgPoint::zero(), Size::new(W as u32, H as u32))
             .into_styled(PrimitiveStyle::with_fill(Rgb565::BLACK)).draw(d);
 
-        let white = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-        let cyan = MonoTextStyle::new(&FONT_10X20, Rgb565::CYAN);
-        let dim = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_GRAY);
+        let white = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::WHITE);
+        let cyan = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CYAN);
+        let dim = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, Rgb565::CSS_GRAY);
 
         // Title
         let _ = Text::with_alignment("MP3 PLAYER", EgPoint::new(W / 2, 40), cyan, Alignment::Center).draw(d);
@@ -151,7 +151,7 @@ impl App for Mp3Player {
             PlayerState::Stopped => Rgb565::RED,
         };
         let _ = Text::with_alignment(state_text, EgPoint::new(W / 2, ctrl_y),
-            MonoTextStyle::new(&FONT_10X20, state_color), Alignment::Center).draw(d);
+            MonoTextStyle::new(&PIXEL_OPERATOR_MONO_14X24, state_color), Alignment::Center).draw(d);
 
         // Controls hint
         let _ = Text::with_alignment("TAP: Play/Pause", EgPoint::new(W / 2, ctrl_y + 40), dim, Alignment::Center).draw(d);
