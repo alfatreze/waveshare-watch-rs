@@ -9,6 +9,8 @@ use embedded_graphics::mono_font::ascii::FONT_10X20;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::text::{Alignment, Text};
 
+use crate::ui::fonts::PIXEL_OPERATOR_MONO_12X24;
+
 const KEYS_COLS: usize = 3;
 const KEYS_ROWS: usize = 4;
 const KEY_W: i32 = 120;
@@ -205,16 +207,8 @@ impl T9Keyboard {
             .draw(d);
         // Text
         let txt = self.get_text();
-        // The bundled font set stops at 10x20. Draw each glyph twice with a
-        // 2px horizontal offset to create a clear 12px-wide input treatment.
-        let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-        for (index, ch) in txt.chars().enumerate() {
-            let mut glyph = [0u8; 4];
-            let ch_text = ch.encode_utf8(&mut glyph);
-            let x = 26 + index as i32 * 12;
-            let _ = Text::new(ch_text, Point::new(x, 142), style).draw(d);
-            let _ = Text::new(ch_text, Point::new(x + 2, 142), style).draw(d);
-        }
+        let style = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_12X24, Rgb565::WHITE);
+        let _ = Text::new(txt, Point::new(26, 142), style).draw(d);
         // Cursor blink
         let cursor_x = 26 + txt.chars().count() as i32 * 12;
         let _ = Rectangle::new(Point::new(cursor_x, 112), Size::new(3, 32))
