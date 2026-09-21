@@ -33,6 +33,7 @@ const MENU_ITEMS: &[MenuItem] = &[
     MenuItem { name: "MP3 Player", state: AppState::Mp3Player, bg_color: Rgb565::new(0, 8, 15), text_color: Rgb565::CYAN },
     MenuItem { name: "Smart Home", state: AppState::SmartHome, bg_color: Rgb565::new(8, 4, 15), text_color: Rgb565::new(20, 10, 31) },
     MenuItem { name: "Settings", state: AppState::Settings, bg_color: Rgb565::new(6, 12, 6), text_color: Rgb565::WHITE },
+    MenuItem { name: "Timer", state: AppState::Timer, bg_color: Rgb565::new(10, 4, 2), text_color: Rgb565::YELLOW },
 ];
 
 pub struct Launcher {
