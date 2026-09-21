@@ -526,6 +526,7 @@ async fn main(_spawner: Spawner) {
     let mut last_touch_y: u16 = 0;
     let mut last_touch_x: u16 = 0;
     let mut settings_touch_down = false;
+    let mut settings_touch_handled = false;
     let mut accel = (0.0f32, 0.0f32, 0.0f32);
     let mut gyro_data = (0i16, 0i16, 0i16);
     let mut imu_temp: i16 = 250;
@@ -1333,10 +1334,23 @@ async fn main(_spawner: Spawner) {
                 // A keyboard key is applied on touch-down, not on lift. This
                 // removes the perceptible delay for multi-tap and DELETE while
                 // retaining one action per physical touch.
-                if int_low && !settings_touch_down {
-                    settings_app.handle_tap(last_touch_x, last_touch_y);
+                if int_low {
+                    if !settings_touch_down {
+                        settings_app.handle_tap(last_touch_x, last_touch_y);
+                        settings_touch_handled = true;
+                    }
+                    settings_touch_down = true;
+                } else {
+                    // A very quick touch can begin and end between two main
+                    // loop samples. The normal release event is a fallback for
+                    // that case, but is ignored after an already handled
+                    // touch-down so no key can be entered twice.
+                    if tap_event && !settings_touch_handled {
+                        settings_app.handle_tap(last_touch_x, last_touch_y);
+                    }
+                    settings_touch_down = false;
+                    settings_touch_handled = false;
                 }
-                settings_touch_down = int_low;
                 // The settings UI owns credential entry; the radio controller
                 // owns connection lifecycle. Apply one requested session
                 // configuration here, then let the common WiFi state machine
