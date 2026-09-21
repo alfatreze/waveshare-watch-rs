@@ -59,7 +59,7 @@ use crate::apps::settings::SettingsApp;
 use crate::apps::mp3player::Mp3Player;
 use crate::apps::smarthome::SmartHomeApp;
 use crate::peripherals::audio::{Es8311, fill_beep_buffer};
-use crate::product::settings::WatchSettings;
+use crate::product::settings::{FlashSettingsStore, SettingsStore, WatchSettings};
 
 // Network runner task (must be spawned for WiFi to work)
 #[embassy_executor::task]
@@ -219,6 +219,20 @@ async fn main(_spawner: Spawner) {
 
     // PSRAM
     esp_alloc::psram_allocator!(peripherals.PSRAM, esp_hal::psram);
+
+    // Settings occupy two reserved data sectors, not firmware space. The
+    // flash driver parks the other CPU during writes, which keeps this safe
+    // while the radio runtime exists on the ESP32-S3.
+    let mut settings_store = FlashSettingsStore::new(
+        esp_storage::FlashStorage::new(peripherals.FLASH).multicore_auto_park(),
+    );
+    let mut settings = match settings_store.load() {
+        Ok(settings) => settings,
+        Err(_) => {
+            println!("[SETTINGS] Flash read failed; using defaults");
+            WatchSettings::default()
+        }
+    };
 
     // Embassy timer
     let timg0 = TimerGroup::new(peripherals.TIMG0);
@@ -500,7 +514,6 @@ async fn main(_spawner: Spawner) {
     println!("=== All systems GO! (Embassy async, WiFi OFF) ===");
 
     // === State ===
-    let settings = WatchSettings::default();
     let mut watchface = WatchFace::new();
     watchface.brightness = settings.brightness();
     watchface.wifi_connected = false; // radio stays off until user taps the button
@@ -593,6 +606,10 @@ async fn main(_spawner: Spawner) {
     let mut next_battery = Instant::now();
     let mut last_frame = Instant::now();
     let mut next_watchface_flush = Instant::now();
+    // Slider movement can produce many touch updates. Persist only after it
+    // has settled, protecting both responsiveness and flash endurance.
+    let mut settings_dirty = false;
+    let mut save_settings_at = Instant::now();
     // Radio state: we track both what the user *wants* and what the radio
     // actually is. They drift apart briefly during connect/disconnect.
     let mut wifi_on_request: bool = false;      // user toggle
@@ -863,6 +880,18 @@ async fn main(_spawner: Spawner) {
         // Transitions on idle: 3 → (20s) → 2 → (40s) → 1 (AOD) → (10min) → 0 (off)
         // Any touch/button bumps us straight back to 3.
         let any_touch = touch_int.is_low();
+        if settings_dirty && !any_touch && now >= save_settings_at {
+            match settings_store.save(settings) {
+                Ok(()) => {
+                    println!("[SETTINGS] Saved");
+                    settings_dirty = false;
+                }
+                Err(_) => {
+                    println!("[SETTINGS] Save failed; retrying");
+                    save_settings_at = now + Duration::from_secs(5);
+                }
+            }
+        }
         if any_touch || swipe_event.is_some() || tap_event || boot_button.is_low() {
             last_interaction = now;
             if screen_state < 3 {
@@ -1123,6 +1152,9 @@ async fn main(_spawner: Spawner) {
                     if let Some(bri) = WatchFace::brightness_from_tap(last_touch_x, last_touch_y) {
                         if (touch_int.is_low() || tap_event) && bri != watchface.brightness {
                             watchface.brightness = bri;
+                            settings.set_brightness(bri);
+                            settings_dirty = true;
+                            save_settings_at = now + Duration::from_millis(1200);
                             display.set_brightness(bri);
                             watchface.force_redraw();
                             page_dirty = true;
