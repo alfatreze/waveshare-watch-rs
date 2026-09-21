@@ -525,6 +525,7 @@ async fn main(_spawner: Spawner) {
     }
     let mut last_touch_y: u16 = 0;
     let mut last_touch_x: u16 = 0;
+    let mut settings_touch_down = false;
     let mut accel = (0.0f32, 0.0f32, 0.0f32);
     let mut gyro_data = (0i16, 0i16, 0i16);
     let mut imu_temp: i16 = 250;
@@ -1329,13 +1330,13 @@ async fn main(_spawner: Spawner) {
 
             AppState::Settings => {
                 settings_app.update(dt_ms.max(1));
-                // Touch coordinates were already refreshed by the common touch
-                // pass above. Handle the matching tap event directly instead of
-                // doing a second I2C poll after it, which could make a T9 action
-                // feel one interaction late.
-                if tap_event {
+                // A keyboard key is applied on touch-down, not on lift. This
+                // removes the perceptible delay for multi-tap and DELETE while
+                // retaining one action per physical touch.
+                if int_low && !settings_touch_down {
                     settings_app.handle_tap(last_touch_x, last_touch_y);
                 }
+                settings_touch_down = int_low;
                 // The settings UI owns credential entry; the radio controller
                 // owns connection lifecycle. Apply one requested session
                 // configuration here, then let the common WiFi state machine

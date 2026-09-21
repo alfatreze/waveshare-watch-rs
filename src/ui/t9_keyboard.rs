@@ -9,7 +9,7 @@ use embedded_graphics::mono_font::ascii::FONT_10X20;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::text::{Alignment, Text};
 
-use crate::ui::fonts::PIXEL_OPERATOR_MONO_12X24;
+use crate::ui::fonts::PIXEL_OPERATOR_MONO_16X24;
 
 const KEYS_COLS: usize = 3;
 const KEYS_ROWS: usize = 4;
@@ -20,7 +20,7 @@ const KB_X: i32 = (410 - KEYS_COLS as i32 * KEY_W - (KEYS_COLS as i32 - 1) * KEY
 const KB_Y: i32 = 175;
 // A T9 sequence is measured from its first tap. 800ms was short enough for a
 // normal three-letter cycle to commit before the third tap landed.
-const COMMIT_MS: u32 = 1_500;
+const COMMIT_MS: u32 = 2_000;
 
 struct KeyDef {
     chars_lower: &'static [&'static str],
@@ -207,10 +207,17 @@ impl T9Keyboard {
             .draw(d);
         // Text
         let txt = self.get_text();
-        let style = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_12X24, Rgb565::WHITE);
-        let _ = Text::new(txt, Point::new(26, 142), style).draw(d);
+        // Keep the newest text visible when a long SSID reaches the edge.
+        let character_count = txt.chars().count();
+        let visible_start = txt.char_indices()
+            .nth(character_count.saturating_sub(22))
+            .map(|(index, _)| index)
+            .unwrap_or(0);
+        let visible = &txt[visible_start..];
+        let style = MonoTextStyle::new(&PIXEL_OPERATOR_MONO_16X24, Rgb565::WHITE);
+        let _ = Text::new(visible, Point::new(26, 142), style).draw(d);
         // Cursor blink
-        let cursor_x = 26 + txt.chars().count() as i32 * 12;
+        let cursor_x = 26 + visible.chars().count() as i32 * 16;
         let _ = Rectangle::new(Point::new(cursor_x, 112), Size::new(3, 32))
             .into_styled(PrimitiveStyle::with_fill(Rgb565::WHITE))
             .draw(d);
